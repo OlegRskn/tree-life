@@ -2,7 +2,7 @@ const canvas = document.getElementById('world');
 const ctx = canvas.getContext('2d');
 
 // === WORLD ===
-const WIDTH = 60;
+const WIDTH = 120;
 const HEIGHT = 60;
 const GROUND_LEVEL = HEIGHT - 5;
 const cellSize = 20;
@@ -11,14 +11,14 @@ canvas.height = HEIGHT * cellSize;
 
 // === TIMING ===
 const GROWTH_INTERVAL = 5;
-const ENERGY_INTERVAL = 20;
+const ENERGY_INTERVAL = 5;
 const SEED_FALL_INTERVAL = 2;
 const CLEANUP_INTERVAL = 1000;
 
 // === ECONOMICS ===
-const UPKEEP_WOOD = 13;
-const UPKEEP_LEAF = 5;
-const UPKEEP_SPROUT = 13;
+const UPKEEP_WOOD = 6;
+const UPKEEP_LEAF = 2;
+const UPKEEP_SPROUT = 2;
 
 const STARTING_ENERGY = 300;
 const MIN_AGE = 88;
