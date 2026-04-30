@@ -1,24 +1,25 @@
-const canvas = document.getElementById("world");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById('world');
+const ctx = canvas.getContext('2d');
 
 // === WORLD ===
-const WIDTH = 240;
-const HEIGHT = 100;
+const WIDTH = 60;
+const HEIGHT = 60;
 const GROUND_LEVEL = HEIGHT - 5;
-const cellSize = 16;
+const cellSize = 20;
 canvas.width = WIDTH * cellSize;
 canvas.height = HEIGHT * cellSize;
 
 // === TIMING ===
 const GROWTH_INTERVAL = 5;
-const ENERGY_INTERVAL = 120;
-const SEED_FALL_INTERVAL = 1;
+const ENERGY_INTERVAL = 20;
+const SEED_FALL_INTERVAL = 2;
 const CLEANUP_INTERVAL = 1000;
 
 // === ECONOMICS ===
-const UPKEEP_WOOD = 1;
-const UPKEEP_LEAF = 13;
-const UPKEEP_SPROUT = 1;
+const UPKEEP_WOOD = 13;
+const UPKEEP_LEAF = 5;
+const UPKEEP_SPROUT = 13;
+
 const STARTING_ENERGY = 300;
 const MIN_AGE = 88;
 const MAX_AGE = 92;
@@ -26,8 +27,8 @@ const GERMINATION_TIME = 30;
 
 // Семена: спраут, который не смог расти, тратит энергию растения,
 // чтобы накопить SEED_THRESHOLD. Когда накопил — становится "ready".
-const SEED_ENERGY_COST = 5;
-const SEED_THRESHOLD = 30;
+const SEED_ENERGY_COST = 50;
+const SEED_THRESHOLD = 100;
 
 // Тень: над клеткой больше CANOPY_LIMIT листьев — рост невозможен.
 const CANOPY_LIMIT = 3;
@@ -52,9 +53,14 @@ const DIR_VECTORS = [
 let tickCount = 0;
 let plants = [];
 let seeds = [];
+let labelMode = 'none'; // 'none' | 'gene' | 'energy'
+let shadowMode = 'canopy'; // 'canopy' | 'column'
+let selectedPlant = null;
+
+// === TEMP PARAMS ===
 
 const world = Array.from({ length: WIDTH }, () =>
-  Array.from({ length: HEIGHT }, (_, y) => (y < GROUND_LEVEL ? "air" : "soil")),
+  Array.from({ length: HEIGHT }, (_, y) => (y < GROUND_LEVEL ? 'air' : 'soil')),
 );
 
 // Кэш-карты, перестраиваются раз за тик. Делают isOccupied и countCanopyAbove
@@ -71,6 +77,7 @@ function draw() {
   drawPlants();
   drawSeeds();
   drawHud();
+  drawPlantInfo();
 }
 
 function drawWorld() {
@@ -83,7 +90,7 @@ function drawWorld() {
 }
 
 function worldColor(t) {
-  return t === "air" ? "skyblue" : "saddlebrown";
+  return t === 'air' ? 'skyblue' : 'saddlebrown';
 }
 
 function drawPlants() {
@@ -92,27 +99,128 @@ function drawPlants() {
     for (const cell of plant.cells) {
       ctx.fillStyle = cellColor(plant, cell);
       ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
+      if (plant === selectedPlant) {
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(
+          cell.x * cellSize,
+          cell.y * cellSize,
+          cellSize,
+          cellSize,
+        );
+      }
+      drawCellLabel(cell);
     }
   }
+}
+function drawPlantInfo() {
+  const empty = document.getElementById('info-empty');
+  const content = document.getElementById('info-content');
+
+  if (!selectedPlant || !selectedPlant.alive) {
+    empty.style.display = 'block';
+    content.style.display = 'none';
+    return;
+  }
+
+  const p = selectedPlant;
+  empty.style.display = 'none';
+  content.style.display = 'block';
+
+  document.getElementById('info-energy').textContent = p.energy;
+  document.getElementById('info-age').textContent = `${p.age} / ${p.maxAge}`;
+  document.getElementById('info-cells').textContent = p.cells.length;
+
+  // Гены, которые используются клетками растения
+  const usedGenes = new Set(p.cells.map((c) => c.gene));
+
+  const dnaEl = document.getElementById('info-dna');
+  dnaEl.innerHTML = '';
+
+  // Заголовок направлений
+  const header = document.createElement('div');
+  header.className = 'dna-gene';
+  const emptyIdx = document.createElement('span');
+  emptyIdx.className = 'gene-index';
+  header.appendChild(emptyIdx);
+  const headerVals = document.createElement('div');
+  headerVals.className = 'gene-values';
+  ['←', '↑', '→', '↓'].forEach((arrow) => {
+    const span = document.createElement('span');
+    span.className = 'gene-val gene-dir-label';
+    span.textContent = arrow;
+    headerVals.appendChild(span);
+  });
+  header.appendChild(headerVals);
+  dnaEl.appendChild(header);
+
+  p.dna.forEach((gene, i) => {
+    const isUsed = usedGenes.has(i);
+    const row = document.createElement('div');
+    row.className = 'dna-gene' + (isUsed ? ' used' : '');
+
+    const idx = document.createElement('span');
+    idx.className = 'gene-index';
+    idx.textContent = i;
+    row.appendChild(idx);
+
+    const vals = document.createElement('div');
+    vals.className = 'gene-values';
+    gene.forEach((v) => {
+      const span = document.createElement('span');
+      span.className = 'gene-val' + (v <= 15 ? ' active' : '');
+      span.textContent = v;
+      vals.appendChild(span);
+    });
+    row.appendChild(vals);
+    dnaEl.appendChild(row);
+  });
+}
+function drawCellLabel(cell) {
+  if (labelMode === 'none') return;
+
+  let text;
+  if (labelMode === 'gene') {
+    text = String(cell.gene);
+  } else {
+    // energy - только для листьев
+
+    if (cell.type !== 'leaf') return;
+    const above = countCanopyAbove(cell.x, cell.y);
+    const multiplier = above === 0 ? 3 : above === 1 ? 2 : above === 2 ? 1 : 0;
+    const level = GROUND_LEVEL - cell.y + 5;
+    text = String(multiplier * level);
+  }
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '14px monospace';
+  ctx.fillStyle = 'white';
+  ctx.fillText(
+    text,
+    cell.x * cellSize + cellSize / 2,
+    cell.y * cellSize + cellSize / 2,
+  );
+  ctx.restore();
 }
 
 function cellColor(plant, cell) {
   switch (cell.type) {
-    case "sprout":
-      return "white";
-    case "ready":
-      return "gold";
-    case "leaf":
+    case 'sprout':
+      return 'white';
+    case 'ready':
+      return 'gold';
+    case 'leaf':
       return `hsl(${plant.hue}, 70%, 40%)`;
-    case "wood":
+    case 'wood':
       return `hsl(${plant.hue}, 30%, 25%)`;
     default:
-      return "gray";
+      return 'gray';
   }
 }
 
 function drawSeeds() {
-  ctx.fillStyle = "yellow";
+  ctx.fillStyle = 'yellow';
   for (const seed of seeds) {
     ctx.fillRect(seed.x * cellSize, seed.y * cellSize, cellSize, cellSize);
   }
@@ -120,11 +228,14 @@ function drawSeeds() {
 
 function drawHud() {
   const aliveCount = plants.filter((p) => p.alive).length;
-  ctx.fillStyle = "white";
-  ctx.font = "14px monospace";
+  ctx.fillStyle = 'white';
+  ctx.font = '14px monospace';
   ctx.fillText(`tick: ${tickCount}`, 10, 20);
-  ctx.fillText(`plants: ${aliveCount}`, 10, 40);
+  ctx.fillText(`plants alive: ${aliveCount}`, 10, 40);
   ctx.fillText(`seeds: ${seeds.length}`, 10, 60);
+  ctx.fillText(`plants array: ${plants.length}`, 10, 80);
+  ctx.fillText(`labels: ${labelMode}`, 10, 100);
+  ctx.fillText(`shadow: ${shadowMode}`, 10, 120);
 }
 
 // === MAIN LOOP ===
@@ -196,7 +307,17 @@ function rebuildCaches() {
     for (let y = 0; y < HEIGHT; y++) {
       canopyMap[x][y] = count;
       const cell = occupancyMap[x][y];
-      if (cell && cell.type === "leaf") count++;
+      if (cell && cell.type === 'leaf') count++;
+    }
+  }
+
+  if (shadowMode === 'column') {
+    for (let x = 0; x < WIDTH; x++) {
+      let count = 0;
+      for (let y = 0; y < HEIGHT; y++) {
+        canopyMap[x][y] = count;
+        if (occupancyMap[x][y] !== null) count++;
+      }
     }
   }
 }
@@ -212,6 +333,14 @@ function countCanopyAbove(x, y) {
 // Инкрементальное обновление canopyMap при появлении нового листа —
 // без этого внутри одного тика растения "просачиваются" в свежезатенённые клетки.
 function markLeaf(x, y) {
+  if (shadowMode !== 'canopy') return;
+  for (let yy = y + 1; yy < HEIGHT; yy++) {
+    canopyMap[x][yy]++;
+  }
+}
+
+function markCell(x, y) {
+  if (shadowMode === 'canopy') return;
   for (let yy = y + 1; yy < HEIGHT; yy++) {
     canopyMap[x][yy]++;
   }
@@ -224,8 +353,12 @@ function growPlant(plant) {
     killPlant(plant);
     return;
   }
+  if (plant.energy <= 0) {
+    killPlant(plant);
+    return;
+  }
   // snapshot sprouts BEFORE the loop so newly added cells don't grow this tick
-  const sprouts = plant.cells.filter((c) => c.type === "sprout");
+  const sprouts = plant.cells.filter((c) => c.type === 'sprout');
   for (const sprout of sprouts) {
     growSprout(plant, sprout);
   }
@@ -245,17 +378,25 @@ function growSprout(plant, sprout) {
     if (newY < 0 || newY >= GROUND_LEVEL) continue;
     if (isOccupiedByPlant(newX, newY)) continue;
     if (countCanopyAbove(newX, newY) > CANOPY_LIMIT) continue;
-    const newCell = { x: newX, y: newY, type: "sprout", gene: value, accumulator: 0 };
+    const newCell = {
+      x: newX,
+      y: newY,
+      type: 'sprout',
+      gene: value,
+      accumulator: 0,
+    };
     plant.cells.push(newCell);
     occupancyMap[newX][newY] = newCell;
     grewAny = true;
   }
   if (grewAny) {
-    sprout.type = "wood";
+    sprout.type = 'wood';
+    markCell(sprout.x, sprout.y); // отдельная функция для column режима
     return;
   }
   if (!wantedGrowth) {
-    sprout.type = "leaf";
+    sprout.type = 'leaf';
+    markLeaf(sprout.x, sprout.y);
     return;
   }
   // спраут хотел расти, но не смог — копит на семя
@@ -263,7 +404,7 @@ function growSprout(plant, sprout) {
     plant.energy -= SEED_ENERGY_COST;
     sprout.accumulator += SEED_ENERGY_COST;
     if (sprout.accumulator >= SEED_THRESHOLD) {
-      sprout.type = "ready";
+      sprout.type = 'ready';
     }
   }
 }
@@ -273,7 +414,7 @@ function killPlant(plant) {
   plant.alive = false;
   for (const cell of plant.cells) {
     occupancyMap[cell.x][cell.y] = null;
-    if (cell.type !== "ready") continue;
+    if (cell.type !== 'ready') continue;
     seeds.push(makeSeed(cell.x, cell.y, plant.dna));
   }
 }
@@ -281,7 +422,7 @@ function killPlant(plant) {
 // === ENERGY ===
 function collectEnergy(plant) {
   for (const cell of plant.cells) {
-    if (cell.type !== "leaf") continue;
+    if (cell.type !== 'leaf') continue;
     const above = countCanopyAbove(cell.x, cell.y);
     let multiplier;
     if (above === 0) multiplier = 3;
@@ -297,14 +438,14 @@ function applyUpkeep(plant) {
   let total = 0;
   for (const cell of plant.cells) {
     switch (cell.type) {
-      case "wood":
+      case 'wood':
         total += UPKEEP_WOOD;
         break;
-      case "leaf":
+      case 'leaf':
         total += UPKEEP_LEAF;
         break;
-      case "sprout":
-      case "ready":
+      case 'sprout':
+      case 'ready':
         total += UPKEEP_SPROUT;
         break;
     }
@@ -356,7 +497,7 @@ function makeRandomDNA() {
 
 function makePlant(x, y, dna) {
   return {
-    cells: [{ x, y, type: "sprout", gene: 0, accumulator: 0 }],
+    cells: [{ x, y, type: 'sprout', gene: 0, accumulator: 0 }],
     age: 0,
     maxAge: randomInt(MIN_AGE, MAX_AGE),
     energy: STARTING_ENERGY,
@@ -367,21 +508,98 @@ function makePlant(x, y, dna) {
 }
 
 function makeSeed(x, y, dna) {
+  const newDna = dna.map((gene) =>
+    gene.map((v) => {
+      if (Math.random() < MUTATION_RATE) {
+        return randomInt(0, DNA_MAX_VALUE);
+      }
+      return v;
+    }),
+  );
   return {
     x,
     y,
-    dna: dna.map((row) => row.slice()),
+    dna: newDna,
     age: 0,
   };
 }
 
 // === START ===
-document.addEventListener("keydown", (event) => {
-  if (event.key === " ") {
+document.addEventListener('keydown', (event) => {
+  if (event.key === ' ') {
     event.preventDefault();
     running = !running;
     if (running) scheduleTick();
   }
+  if (
+    event.key === 'l' ||
+    event.key === 'L' ||
+    event.key === 'д' ||
+    event.key === 'Д'
+  ) {
+    if (labelMode === 'none') labelMode = 'gene';
+    else if (labelMode === 'gene') labelMode = 'energy';
+    else labelMode = 'none';
+    draw();
+  }
+  if (
+    event.key === 's' ||
+    event.key === 'S' ||
+    event.key === 'ы' ||
+    event.key === 'Ы'
+  ) {
+    shadowMode = shadowMode === 'canopy' ? 'column' : 'canopy';
+    draw();
+  }
+
+  if (
+    event.key === 'r' ||
+    event.key === 'R' ||
+    event.key === 'к' ||
+    event.key === 'К'
+  ) {
+    tickCount = 0;
+    plants = [];
+    seeds = [];
+    occupancyMap = makeEmptyGrid(null);
+    canopyMap = makeEmptyGrid(0);
+    plants.push(makePlant(Math.floor(WIDTH / 2), GROUND_LEVEL - 1));
+
+    running = true;
+    draw();
+    scheduleTick();
+  }
 });
+
+canvas.addEventListener('click', (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = rect.width / canvas.width;
+  const scaleY = rect.height / canvas.height;
+  const x = Math.floor((event.clientX - rect.left) / scaleX / cellSize);
+  const y = Math.floor((event.clientY - rect.top) / scaleY / cellSize);
+  const cell = occupancyMap[x]?.[y];
+  selectedPlant = cell
+    ? plants.find((p) => p.alive && p.cells.includes(cell))
+    : null;
+  draw();
+});
+
+// === RESPONSIVE SCALING ===
+function fitToViewport() {
+  const app = document.getElementById('app');
+  // сбрасываем трансформацию чтобы измерить реальный размер
+  app.style.transform = 'translate(-50%, -50%)';
+  const appW = app.offsetWidth;
+  const appH = app.offsetHeight;
+  const scale = Math.min(
+    window.innerWidth / appW,
+    window.innerHeight / appH,
+    1,
+  );
+  app.style.transform = `translate(-50%, -50%) scale(${scale})`;
+}
+
+window.addEventListener('resize', fitToViewport);
+fitToViewport();
 
 scheduleTick();

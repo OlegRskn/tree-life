@@ -6,7 +6,19 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <canvas id="world" width="800" height="400"></canvas>
+    <div id="app">
+      <canvas id="world" width="800" height="400"></canvas>
+      <div id="info-panel">
+        <div id="info-empty">Кликните на растение</div>
+        <div id="info-content" style="display:none">
+          <div class="info-row"><span class="label">energy</span><span id="info-energy"></span></div>
+          <div class="info-row"><span class="label">age</span><span id="info-age"></span></div>
+          <div class="info-row"><span class="label">cells</span><span id="info-cells"></span></div>
+          <div class="dna-title">DNA</div>
+          <div id="info-dna"></div>
+        </div>
+      </div>
+    </div>
     <script src="main.js"></script>
   </body>
 </html>

@@ -1,12 +1,110 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background: #222;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  overflow: hidden;
+  width: 100vw;
   height: 100vh;
+  position: relative;
+  font-family: monospace;
+  color: #eee;
 }
+
+#app {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+}
+
 canvas {
-  border: 1px solid black;
+  border: 1px solid #444;
   image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+#info-panel {
+  width: 220px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 13px;
+}
+
+#info-empty {
+  color: #666;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.label {
+  color: #888;
+}
+
+.dna-title {
+  color: #888;
+  margin: 12px 0 6px;
+  border-top: 1px solid #333;
+  padding-top: 10px;
+}
+
+#info-dna {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dna-gene {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gene-index {
+  color: #555;
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.gene-values {
+  display: flex;
+  gap: 3px;
+}
+
+.gene-val {
+  width: 26px;
+  text-align: center;
+  padding: 1px 0;
+  border-radius: 3px;
+  background: #2a2a2a;
+  color: #666;
+}
+
+.gene-val.active {
+  background: #2d4a2d;
+  color: #7ecf7e;
+}
+
+.dna-gene.used .gene-index {
+  color: #aaa;
+}
+
+.gene-dir-label {
+  background: transparent;
+  color: #555;
+  font-size: 11px;
 }
