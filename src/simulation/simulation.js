@@ -78,7 +78,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       state.seeds = state.seeds.filter((s) => !s.germinated);
     }
 
-    // Снимок численности популяции для графика
+    // Population snapshot for the graph
     if (state.tickCount % config.POPULATION_SNAPSHOT_INTERVAL === 0) {
       const aliveGens = state.plants.map((p) => p.generation);
       state.populationHistory.push({
@@ -153,7 +153,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       spatial.markLeaf(sprout, state.shadowMode);
       return;
     }
-    // спраут хотел расти, но не смог — копит на семя
+    // A blocked sprout accumulates energy for a seed.
     if (plant.energy >= config.SEED_ENERGY_COST) {
       plant.energy -= config.SEED_ENERGY_COST;
       sprout.accumulator += config.SEED_ENERGY_COST;
@@ -167,7 +167,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     if (!plant.alive) return;
     plant.alive = false;
     plant.diedAt = state.tickCount;
-    if (!plant.causeOfDeath) plant.causeOfDeath = "age"; // защита, если кто-то вызвал killPlant без checkDeath
+    if (!plant.causeOfDeath) plant.causeOfDeath = "age"; // Fallback for calls that bypass checkDeath.
     state.deathCounts[plant.causeOfDeath]++;
     const stressed = plant.causeOfDeath === "starvation";
     for (const cell of plant.cells) {
@@ -176,7 +176,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
         state.seeds.push(makeSeed(cell.x, cell.y, plant.dna, stressed, [plant]));
       }
     }
-    plant.cells = []; // освобождаем память, метаданные и ДНК остаются
+    plant.cells = []; // Release cells while retaining metadata and DNA.
   }
 
   function collectEnergy(plant) {
@@ -209,7 +209,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   }
 
   function updateSeed(seed) {
-    if (seed.germinated) return; // уже обработано (например, как партнёр по кроссоверу)
+    if (seed.germinated) return; // Already processed, for example as a crossover partner.
 
     const below = seed.y + 1;
     const onSoil = below >= config.GROUND_LEVEL;
@@ -228,12 +228,12 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
         return;
       }
       if (spatial.countCanopyAbove(seed.x, seed.y) > 0) {
-        // под кроной нет солнца — семя не прорастает
+        // Seeds cannot germinate under a canopy.
         seed.germinated = true;
         return;
       }
 
-      // Кроссовер: ищем другое созревшее семя на той же клетке
+      // Crossover: find another mature seed at the same cell.
       const partner = state.seeds.find(
         (s) =>
           s !== seed &&
@@ -246,9 +246,9 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       let plantDna;
       let plantParents;
       if (partner) {
-        // Скрещиваем ДНК двух семян + мутируем потомка
+        // Combine both seeds' DNA and mutate the offspring.
         plantDna = mutateDna(crossover(seed.dna, partner.dna));
-        // Дедуплицируем по reference: если оба семени с того же родителя — он будет один.
+        // Deduplicate by reference when both seeds share a parent.
         plantParents = [...new Set([...seed.parents, ...partner.parents])];
         partner.germinated = true;
       } else {
@@ -287,7 +287,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       causeOfDeath: null,
     };
 
-    // Кешируем сигнатуру вида — ДНК фиксирована до конца жизни.
+    // Cache the genome group signature; DNA is fixed for life.
     plant.speciesHash = speciesHash(plant.dna);
 
     population.register(plant);
@@ -309,11 +309,11 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   }
 
   function plantSavedGenome(dna) {
-    // Сажаем растение с сохранённым геномом в центре мира.
-    // Делаем глубокую копию, чтобы все посадки не делили один и тот же массив.
+    // Plant a saved genome near the center of the world.
+    // Deep-copy DNA so separate plantings do not share arrays.
 
     const dnaCopy = dna.map((row) => row.slice());
-    // ищем свободную колонку рядом с центром
+    // Find an empty column near the center.
     for (let attempt = 0; attempt < 10; attempt++) {
       const x = Math.floor(config.WIDTH / 2) + randomInt(-10, 10);
       if (x < 0 || x >= config.WIDTH) continue;

@@ -24,7 +24,7 @@ export function createGenetics(config, random) {
   function mutateDna(dna, rate = config.MUTATION_RATE) {
     const copy = dna.map((row) => row.slice());
 
-    // 1. Точечные мутации по каждой позиции
+    // 1. Point mutations at each position
     for (let g = 0; g < config.GENE_COUNT; g++) {
       for (let d = 0; d < config.DIRECTIONS; d++) {
         if (random() < rate) {
@@ -33,9 +33,9 @@ export function createGenetics(config, random) {
       }
     }
 
-    // 2. Структурная мутация: gene swap (редко, не per-position).
-    // Вероятность = rate * MUT_SWAP_WEIGHT / 100.
-    // При стрессе rate удвоен, swap тоже учащается вместе с ним.
+    // 2. Structural mutation: rare gene swap, not per-position.
+    // Probability = rate * MUT_SWAP_WEIGHT / 100.
+    // Stress increases rate, which also increases the swap probability.
     if (random() < (rate * config.MUT_SWAP_WEIGHT) / 100) {
       const a = randomInt(0, config.GENE_COUNT - 1);
       const b = randomInt(0, config.GENE_COUNT - 1);

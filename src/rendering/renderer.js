@@ -123,7 +123,7 @@ export function createRenderer(canvas, simulation, viewState) {
     if (viewState.labelMode === "gene") {
       text = String(cell.gene);
     } else {
-      // energy - только для листьев
+      // Energy labels apply only to leaves.
 
       if (cell.type !== "leaf") return;
       const above = state.canopyMap[cell.x][cell.y];

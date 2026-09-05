@@ -1,44 +1,44 @@
-# Правила совместной работы
+# Collaboration rules
 
-## Общение
+## Communication
 
-- Общаемся по-русски. Пользователь немного пишет на JavaScript, но преимущественно описывает идеи словами; агент отвечает за реализацию и тестирование.
-- Объясняем решения кратко и понятно. Технические детали добавляем, когда они нужны для принятия решения.
-- Эти правила относятся к этому проекту.
-- В GitHub используем английский язык: названия веток, сообщения коммитов, заголовки и описания pull request и issues, комментарии и результаты проверок. Общение с пользователем в чате остаётся на русском.
+- Speak Russian with the user in chat. The user writes some JavaScript but primarily describes ideas in words; the agent handles implementation and testing.
+- Explain decisions briefly and clearly. Add technical details when they help the user make a decision.
+- These rules apply to this project.
+- Use English throughout GitHub: branch names, commit messages, pull request and issue titles/descriptions, comments, and check results. Repository content must also be in English, including documentation, code comments, and interface text. Chat with the user remains in Russian.
 
-## Обсуждение и итерации
+## Discussion and iterations
 
-- Начинаем с брейншторма: уточняем ожидаемое поведение, варианты и компромиссы. На этапе обсуждения код не меняем.
-- До реализации согласуем короткий план, разбитый на небольшие итерации. Для каждой фиксируем результат и проверяемые критерии готовности.
-- После указания пользователя реализовать итерацию самостоятельно выполняем согласованную работу, пишем и запускаем тесты, исправляем найденные проблемы.
-- Внутри согласованной задачи не запрашиваем подтверждение на каждый технический шаг.
-- Новые зависимости, значительные изменения архитектуры и расширение объёма задачи обсуждаем до реализации.
-- Не делаем попутных переделок. Новые идеи сохраняем в список последующих задач.
-- План, принятые решения и прогресс сохраняем в документации репозитория; существующие документы используем прежде создания дубликатов.
+- Start with brainstorming: clarify expected behavior, alternatives, and tradeoffs. Do not change code during the discussion stage.
+- Before implementation, agree on a short plan divided into small iterations. Record the outcome and verifiable acceptance criteria for each iteration.
+- Once the user asks to implement an iteration, carry out the agreed work independently, write and run tests, and fix issues found.
+- Do not request confirmation for every technical step within the agreed task.
+- Discuss new dependencies, significant architectural changes, and scope expansion before implementation.
+- Avoid unrelated refactoring. Save new ideas in the backlog.
+- Keep plans, decisions, and progress in repository documentation; update existing documents before creating duplicates.
 
-## Ветки и коммиты
+## Branches and commits
 
-- Разработку ведём в отдельных ветках: одна самостоятельная задача — одна ветка. Название отражает фичу или задачу, например `feature/conditional-genes`, `fix/seed-crossover`, `refactor/simulation-modules`. Не используем префикс `codex/` и названия агентов.
-- Перед изменениями проверяем текущую ветку и состояние рабочей директории. Сохраняем существующие изменения пользователя и не включаем посторонние изменения в свои коммиты.
-- Делаем небольшие осмысленные коммиты. Изменения кода и относящиеся к ним тесты коммитим вместе в той же ветке.
-- После завершения итерации, успешных проверок и коммита самостоятельно пушим рабочую ветку в `origin` — `https://github.com/OlegRskn/tree-life.git`. Повторное подтверждение пользователя для таких пушей не требуется. Отправляем только согласованные изменения проекта; force push отдельно не разрешён.
-- В `main` вливаем только после успешных проверок и явной команды пользователя на слияние. Разрешение на пуш не означает разрешение на слияние.
+- Develop on separate branches: one independent task per branch. Names must describe the feature or task, such as `feature/conditional-genes`, `fix/seed-crossover`, or `refactor/simulation-modules`. Do not use the `codex/` prefix or agent names.
+- Before changes, check the current branch and working tree. Preserve existing user changes and exclude unrelated changes from your commits.
+- Make small, meaningful commits. Commit code changes together with their tests on the same branch.
+- After completing an iteration, passing checks, and committing, independently push the working branch to `origin` at `https://github.com/OlegRskn/tree-life.git`. These pushes do not require repeated user confirmation. Push only agreed project changes; force pushes are not authorized.
+- Merge into `main` only after successful checks and an explicit user instruction to merge. Push authorization is not merge authorization.
 
-## Обязательное тестирование
+## Required testing
 
-- Тестирование обязательно для каждой итерации разработки. Проверки запускаем локально и через GitHub Actions при пушах и pull request в main. Автоматический деплой пока не настраиваем.
-- Автоматические тесты храним в репозитории, вместе с необходимой конфигурацией для их запуска. Временные проверки вне репозитория не заменяют эти тесты.
-- Для нового или изменённого поведения добавляем либо обновляем подходящие автоматические тесты. Они проверяют основной сценарий, обработку ошибок и важные крайние случаи, а не повторяют реализацию.
-- При исправлении бага добавляем регрессионный тест: убеждаемся, что он воспроизводит проблему до исправления и проходит после него.
-- Изменения интерфейса дополнительно проверяем в браузере.
-- Предоставляем понятную команду локального запуска проверок и документируем её в README. Конкретные инструменты выбираем после знакомства с проектом.
-- Если тесты не проходят или их не удалось запустить, итерация не готова к слиянию в `main`.
-- Перед слиянием дожидаемся успешного CI для актуального коммита, если workflow уже настроен в ветке.
-- Для изменений только документации проверяем содержание и корректность оформления; искусственные тесты кода для них не создаём.
+- Testing is mandatory for every development iteration. Run checks locally and through GitHub Actions on pushes and pull requests targeting main. Do not set up automatic deployment yet.
+- Store automated tests and their run configuration in the repository. Temporary checks outside the repository do not replace these tests.
+- Add or update appropriate automated tests for new or changed behavior. Cover the main scenario, errors, and important edge cases rather than reproducing the implementation.
+- For bug fixes, add a regression test: verify that it reproduces the issue before the fix and passes afterward.
+- Also verify interface changes in a browser.
+- Provide a clear local test command and document it in the README. Choose specific tools after examining the project.
+- If tests fail or could not run, the iteration is not ready to merge into `main`.
+- Before merging, wait for successful CI on the current commit when the branch already has a workflow.
+- For documentation-only changes, check content and formatting; do not invent code tests for them.
 
-## Завершение итерации
+## Completing an iteration
 
-- Сообщаем, что изменилось, какие проверки выполнены и с каким результатом, что осталось непроверенным и есть ли известные проблемы.
-- Готовность означает: согласованные критерии выполнены, проверки проходят, основной сценарий работает, известных блокирующих ошибок нет.
-- Пользователь оценивает соответствие результата задумке перед решением о слиянии.
+- Report what changed, which checks ran and their results, what remains unverified, and any known issues.
+- Ready means that the agreed criteria are met, checks pass, the main scenario works, and there are no known blocking issues.
+- The user evaluates whether the result matches their intent before deciding to merge.

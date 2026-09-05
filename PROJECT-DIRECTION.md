@@ -1,199 +1,166 @@
-# Tree Life: направления и первый план
+# Tree Life: directions and initial plan
 
-Дата: 2026-09-05. Рабочая гипотеза для обсуждения; направление продукта пока не выбрано.
+Date: 2026-09-05. A working hypothesis for discussion; the product direction has not been chosen yet.
 
-## Что уже есть
+## What already exists
 
-Браузерная симуляция на JavaScript и Canvas без сборщика. Мир 240 × 90 клеток. Геном из 16 генов задаёт рост в четырёх направлениях. Есть листья, древесина, энергетические расходы, затенение, старение, семена, мутации и механизм скрещивания.
+A browser simulation built with JavaScript and Canvas, without a build system. The world has 240 x 90 cells. A genome of 16 genes controls growth in four directions. The model includes leaves, wood, energy costs, shading, aging, seeds, mutations, and a crossover mechanism.
 
-Уже реализованы ID, родители и потомки, навигация по родословной, подсветка родственников, график популяции, группировка геномов и сохранение геномов в localStorage. Поэтому ui-plan.md следует воспринимать как прежний план реализации: большая часть его шагов присутствует в коде.
+IDs, parents and children, lineage navigation, relative highlighting, population history, genome grouping, and localStorage genome saves are already implemented. The earlier local `ui-plan.md` should therefore be treated as a historical implementation plan: most of its steps already exist in code.
 
-## Главная гипотеза
+## Core hypothesis
 
-Наблюдать интересно, когда из простых правил возникают разные жизнеспособные формы, а интерфейс помогает увидеть и объяснить их успех.
+Observation becomes interesting when simple rules produce different viable forms and the interface helps people recognize and explain their success.
 
-Предлагаемый первый опыт: запустить мир → заметить необычное растение → проследить его линию → сохранить геном → изменить одно условие → сравнить результат.
+Proposed first experience: start a world -> notice an unusual plant -> follow its lineage -> save its genome -> change one condition -> compare outcomes.
 
-## Возможные направления
+## Possible directions
 
-1. **Живой эволюционный сад.** Главное — наблюдение, красивые формы, смена поколений, истории отдельных линий. Минимум обязательных действий. Проверка: хочется ли вернуться и узнать, что произошло?
-2. **Лаборатория искусственной жизни.** Главное — воспроизводимые эксперименты, параметры среды, сравнение геномов и исходов. Проверка: может ли человек поставить вопрос и получить понятный результат?
-3. **Игра про выращивание мира.** Главное — решения игрока, ограничения ресурсов, цели и последствия вмешательства. Проверка: есть ли интересный выбор помимо ожидания? Потребует отдельного игрового цикла.
+1. **A living evolutionary garden.** Focus on observation, interesting shapes, successive generations, and stories of individual lineages. Few required actions. Question: do people want to return to see what happened?
+2. **An artificial-life laboratory.** Focus on reproducible experiments, environment settings, and comparisons of genomes and outcomes. Question: can someone ask a question and obtain an understandable result?
+3. **A world-growing game.** Focus on player decisions, resource constraints, goals, and consequences of intervention. Question: is there an interesting choice beyond waiting? This requires a separate gameplay loop.
 
-Первоначальная гипотеза: совместить сад с несколькими инструментами лаборатории. Окончательный выбор зависит от авторского интереса.
+Initial hypothesis: combine the garden with a few laboratory tools. The final direction depends on the author's interests.
 
-## Наблюдения, влияющие на план
+## Observations informing the plan
 
-- Начальная популяция состоит из одного случайного растения. В диагностике на 20 фиксированных последовательностях случайных чисел 18 запусков завершились без потомства; два достигли поколения 9 к тику 5000. Это небольшая выборка, не оценка вероятности для всех запусков. Проверялся код модели в Node с отключённой отрисовкой и заменой Math.random на LCG; браузерный интерфейс не проверялся.
-- Размножение зависит от блокировки роста: такой росток накапливает энергию для семени. Семена высвобождаются только после смерти. Это определяет отбор, а не только визуальный стиль растений.
-- Семена падают вертикально; отдельного механизма ветра или переноса по горизонтали нет. Горизонтальное расселение возможно через разрастание родителя.
-- При текущем размножении живой родитель и его потомок не сосуществуют. Поэтому подсветка живых предков мало помогает; полезнее история форм и подсветка родственных линий среди современников.
-- Цвет растения случаен и не наследуется. Он не помогает узнавать линию.
-- Счётчик «видов» основан на округлении значений ДНК. Пока это технические группы геномов, а не подтверждённые виды или стратегии. Номер гена — ссылка на инструкцию: близкие числа необязательно означают похожее поведение.
-- Один тик выполняется на кадр requestAnimationFrame. Скорость мира зависит от частоты кадров.
-- Архив умерших растений остаётся в общем массиве; история и повторные обходы растут со временем.
-- Canvas имеет размер 4800 × 1800, а весь интерфейс вместе с панелью уменьшается под окно. Читаемость панели нужно проверить и отделить от масштаба мира.
+These describe the initial prototype; later implementation notes record subsequent changes.
 
-## Этап 1. Надёжный и измеримый эксперимент
+- The starting population is one random plant. In a diagnostic sample of 20 fixed random sequences, 18 runs ended without offspring; two reached generation 9 by tick 5000. This is a small sample, not a probability estimate for all launches. The model ran in Node without rendering, with Math.random replaced by an LCG; the browser interface was not inspected in this initial experiment.
+- Reproduction depends on blocked growth: a blocked sprout accumulates energy for a seed. Seeds are released only after death. This determines selection, not just appearance.
+- Seeds fall vertically; there is no separate wind or horizontal transport mechanism. A parent's horizontal growth can still spread seeds horizontally.
+- Under the current reproduction rules, a living parent and its offspring do not coexist. Highlighting living ancestors is therefore of limited use; shape history and highlighting related contemporary plants may be more useful.
+- Plant colour is random and not inherited, making lineages harder to recognize.
+- The species counter rounds DNA values into buckets. These are technical genome groups, not established species or strategies. Gene numbers reference instructions: nearby numbers do not necessarily imply similar behavior.
+- One tick runs per requestAnimationFrame callback, so world speed depends on frame rate.
+- Initially, dead plants remained in the main array; history and repeated traversal costs grew over time.
+- The Canvas is 4800 x 1800, and the entire UI, including its panel, scales down to fit the window. Panel readability needs checking and should be independent of world scale.
 
-Цель: понимать, почему мир выживает или вымирает, и воспроизводить результат.
+## Stage 1. Reliable, measurable experiments
 
-- Отделить шаг модели от отрисовки; добавить задаваемое начальное состояние генератора случайных чисел.
-- Добавить паузу, одиночный шаг, управление скоростью и повтор запуска с тем же начальным состоянием.
-- Подготовить демонстрационный старт из проверенных жизнеспособных геномов; сохранить режим полностью случайного старта для экспериментов.
-- Собирать рождения, смерти, поколения, жизнеспособное потомство и размер популяции. Рост номера поколения сам по себе не считать адаптацией.
-- Проверить серией запусков энергетический баланс, появление семян и фактическую частоту скрещивания.
-- Отделить активные растения от архива; определить ограничение истории.
+Goal: understand why the world survives or becomes extinct, and reproduce the result.
 
-Критерий: выбранный запуск воспроизводится; демонстрационные сценарии проходят хотя бы 20 поколений; вымирание видно и объясняется данными. Число поколений — первоначальная техническая цель, не доказательство интересности.
+- Separate model steps from rendering and allow setting the initial random-generator state.
+- Add pause, single-step execution, speed controls, and replay from the same starting state.
+- Prepare a demo using known viable genomes; retain fully random starts for experiments.
+- Record births, deaths, generations, viable offspring, and population size. Increasing generation numbers alone do not establish adaptation.
+- Use repeated runs to examine energy balance, seed production, and actual crossover frequency.
+- Separate active plants from the archive and define history limits.
 
-## Этап 2. Сделать происходящее понятным
+Acceptance: selected runs are reproducible; demo scenarios reach at least 20 generations; extinction is visible and explained by data. The generation count is an initial technical target, not proof of an engaging experience.
 
-- Панель обычного размера, масштабирование и перемещение камеры мира.
-- Цвет по линии происхождения; отдельное обозначение смешанного происхождения при необходимости.
-- Карточка растения: откуда энергия, на что расходуется, что мешает росту, сколько потомков оставлено.
-- Сравнение родителя и потомка: изменения ДНК и небольшие снимки формы в сопоставимом возрасте.
-- Небольшой журнал событий: первое потомство, исчезновение линии, рекорд поколения. Хранить события и редкие снимки, не каждый кадр.
+## Stage 2. Make events understandable
 
-Критерий: наблюдатель без чтения кода может рассказать историю одной линии и назвать возможную причину её успеха. Причину ещё нужно проверять экспериментом.
+- Keep the panel readable and add world-camera zoom and panning.
+- Colour plants by lineage, with a separate indication of mixed ancestry if needed.
+- Explain energy sources, expenses, growth obstacles, and offspring in the plant card.
+- Compare parent and child DNA and small shape snapshots at similar ages.
+- Keep a small event log: first offspring, lineage extinction, and generation records. Store events and occasional snapshots rather than every frame.
 
-## Этап 3. Один содержательный способ вмешательства
+Acceptance: without reading code, an observer can describe one lineage's story and suggest a reason for its success. That explanation still needs experimental verification.
 
-Выбрать одну переменную: например, интенсивность света. Запустить одинаковое начальное состояние при двух значениях, повторить сравнение на нескольких начальных состояниях. Показать численность, размножение и распределение форм.
+## Stage 3. One meaningful intervention
 
-Ветер, разные почвы, сезоны и новые организмы добавлять отдельными экспериментами, если наблюдения показывают, какого разнообразия не хватает.
+Choose one variable, such as light intensity. Run the same starting state at two values, repeat across several starting states, and show population size, reproduction, and shape distributions.
 
-Критерий: изменение условия даёт различимый и воспроизводимый результат; пользователю хочется проверить следующую гипотезу.
+Add wind, soil variation, seasons, or new organisms as separate experiments when observations reveal what diversity is missing.
 
-## Этап 4. Проверить интерес
+Acceptance: changing the condition produces a distinguishable, reproducible result and encourages the user to test another hypothesis.
 
-Дать прототип 3–5 людям на короткую свободную сессию. Наблюдать: что они замечают, где теряются, сохраняют ли растение, повторяют ли опыт по собственной инициативе. Затем выбрать основной путь: сад, лаборатория или игра.
+## Stage 4. Test interest
 
-## Идеи для последующих экспериментов
+Give the prototype to 3-5 people for a short, open-ended session. Observe what they notice, where they get lost, whether they save plants, and whether they repeat experiments on their own. Then choose the main direction: garden, laboratory, or game.
 
-- «Гербарий»: коллекция геномов со снимками, происхождением и условиями успеха.
-- «Что изменилось?»: сравнение соседних поколений с подсветкой мутаций.
-- «Развилка мира»: копия состояния для проверки одного изменения среды.
-- «История династии»: краткая хроника распространения и исчезновения линии.
-- «Разные места — разные формы»: несколько ниш с различной освещённостью.
+## Ideas for later experiments
 
-## Пока отложить
+- **Herbarium:** a genome collection with snapshots, ancestry, and successful conditions.
+- **What changed?:** compare neighbouring generations and highlight mutations.
+- **World fork:** copy a state to test one environment change.
+- **Dynasty history:** a short account of a lineage spreading and disappearing.
+- **Different places, different forms:** several niches with different lighting.
 
-Аккаунты, сервер, мультиплеер, монетизацию, большой редактор генов, сложную классификацию видов и полную смену технологического стека. Возвращаться к ним при появлении конкретной потребности.
+## Defer for now
 
-## Вопросы для следующего обсуждения
+Accounts, a backend, multiplayer, monetization, a large genome editor, complex species classification, and replacing the technology stack. Revisit when a concrete need emerges.
 
-- Что важнее автору: наблюдать жизнь, исследовать её правила или управлять ею как игрок?
-- Нужна ли близость к биологии или достаточно интересных условных правил?
-- Какой момент в нынешнем прототипе уже вызывал желание продолжать наблюдение?
+## Questions for the next discussion
 
-Следующая практическая итерация: воспроизводимый запуск, устойчивый демонстрационный сценарий и понятные показатели рождения/вымирания. После неё решать, какие правила роста и размножения менять.
+- Does the author care most about observing life, exploring its rules, or controlling it as a player?
+- Is biological realism important, or are engaging abstract rules sufficient?
+- Which moment in the current prototype already made the author want to keep watching?
 
-## Согласованная архитектура и прогресс
+Next practical iteration: reproducible starts, a stable demonstration scenario, and clear birth/extinction indicators. Use those results to decide which growth and reproduction rules to change.
 
-2026-09-05: согласовано выделение независимой модели симуляции, генетики,
-отрисовки, интерфейса и сохранения. Первый проход сохраняет текущие правила;
-второй отделит активный мир от архива и уточнит устройство пространственных карт.
+## Agreed architecture and progress
 
-Результат первого прохода:
+2026-09-05: agreed to extract an independent simulation model, genetics, rendering, UI, and persistence. The first pass preserves existing rules; the second separates active bodies from the archive and clarifies spatial maps.
 
-- `main.js` соединяет модули и управляет кадрами; модель запускается без браузера.
-- Состояние и настройки принадлежат экземпляру симуляции; доступен числовой сид
-  для повторяемых опытов через программный API.
-- Настройки отображения отделены от правил. Тень остаётся правилом модели.
-- Библиотека геномов сохраняет прежний ключ и формат localStorage.
-- Добавлены локальные тесты и запуск без внешних зависимостей; команды и границы
-  модулей описаны в README.md.
+First-pass results:
 
-Проверяемые критерии: совпадение 30 контрольных состояний с исходным прототипом,
-работа модели без DOM, изоляция экземпляров, сохранение управления и библиотеки
-геномов. Все 13 автоматических тестов прошли. В браузере проверены запуск,
-пауза, рестарт, выбор, карточка ДНК и переключения L/S. Встроенный браузер Codex
-не поддерживает существующий `prompt()`; сохранение через реальный диалог имени
-нужно дополнительно проверить в обычном браузере. Путь сохранения/посева/удаления
-прошёл интеграционный тест с подставным диалогом и хранилищем.
+- `main.js` connects modules and schedules frames; the model runs without a browser.
+- Each simulation owns state and settings; a numeric seed enables reproducible experiments through the API.
+- Display settings are separate from rules. Shading remains a model rule.
+- The genome library keeps its localStorage key and format.
+- Local tests and dependency-free startup were added; commands and module responsibilities are documented in README.md.
 
-Изменения находятся в ветке `refactor/simulation-modules`; слияние не выполнялось.
-Исходная рабочая копия содержала незакоммиченные правки, в том числе main.js,
-index.html и style.css. HTML/CSS сохранены без изменений этой итерации.
+Acceptance criteria: match 30 original reference states, run without a DOM, isolate instances, and preserve controls and genome storage. All 13 automated tests passed. Browser checks covered startup, pause, reset, selection, the DNA card, and L/S toggles. Codex's in-app browser does not support the existing `prompt()`; the actual name-entry dialog still needs checking in a normal browser. Saving/planting/deleting passed an integration test with stubbed dialogs and storage.
 
-### Второй проход: активная популяция и пространственные карты
+The work was committed on `refactor/simulation-modules`; it had not been merged at this stage. The original working tree contained uncommitted changes, including main.js, index.html, and style.css. This iteration preserved the existing HTML/CSS.
 
-2026-09-06, ветка `refactor/active-population-spatial`, основана на первом проходе.
+### Second pass: active population and spatial maps
 
-Согласованный результат: обработка только живых растений, доступная родословная
-умерших и отдельный модуль пространственных карт без изменения баланса.
+2026-09-06, branch `refactor/active-population-spatial`, based on the first pass.
 
-- `population.js` отделяет активный массив от полного реестра ID. Удаление из
-  активного массива происходит после фазы растений, сохраняет порядок выживших
-  и не пропускает соседей. Умершие сохраняют ДНК и связи, но освобождают клетки.
-- Исправлено увеличение возраста после смерти. Регрессионные тесты сначала
-  воспроизвели прежнее поведение, затем прошли на новой реализации.
-- `spatial.js` владеет картами занятости/тени и их обновлением. Существующая
-  задержка снятия тени после смерти сохранена и описана как отдельная задача.
-- Обычная отрисовка и показатели популяции используют активный массив;
-  просмотр родословной обращается к реестру ID.
+Agreed outcome: process only living plants, keep dead plants' lineage accessible, and extract spatial maps without changing balance.
 
-Критерии выполнены: все 25 локальных тестов прошли; 30 прежних контрольных
-состояний совпали с адаптацией только старого ошибочного посмертного возраста.
-В браузере проверены запуск, выбор, сохранение карточки после смерти и переход
-от умершего родителя к живому потомку и обратно. Ошибок в консоли не обнаружено.
-Сохранение через prompt повторно не проверялось; прежнее ограничение встроенного
-браузера остаётся, интеграционный тест библиотеки геномов проходит.
+- `population.js` separates the active array from the full ID registry. Dead plants leave the active array after the plant phase, preserving survivor order without skipping neighbours. They retain DNA and relationships but release their cells.
+- Fixed age increasing after death. Regression tests reproduced the previous behavior before passing on the new implementation.
+- `spatial.js` owns occupancy/shadow maps and updates. At this stage, the existing delay in removing shadows after death was preserved and documented as a separate task.
+- Normal rendering and population metrics use the active array; lineage inspection uses the ID registry.
 
-Ограничения: архив ДНК/метаданных всё ещё растёт, карта перестраивается каждый шаг,
-обход большой выбранной родословной может быть дорогим. Эта итерация убирает
-обход умерших из обычного шага и рендера, но не решает все ограничения памяти.
+Acceptance criteria were met: all 25 local tests passed; 30 original checkpoints matched with adaptation only for the old erroneous post-death age. Browser checks covered startup, selection, keeping a card open after death, and navigating from a dead parent to a living child and back. No console errors were observed. Saving through prompt was not rechecked; the in-app browser limitation remained, while the genome-library integration test passed.
 
-Следующие отдельные задачи: проверить снятие тени сразу после смерти и смены
-режима; определить политику хранения истории; затем перейти к управлению
-скоростью и устойчивому демонстрационному сценарию.
+Limitations: the DNA/metadata archive still grows, maps are rebuilt each step, and traversing a large selected lineage can be expensive. This iteration removes dead-plant traversal from ordinary steps and rendering; it does not solve every memory constraint.
 
-### Исправление немедленного обновления тени
+Next separate tasks: immediate shadow updates on death/mode changes, history retention, then speed controls and a reliable demo scenario.
 
-2026-09-06, ветка `fix/immediate-shadow-updates`, основана на втором проходе.
+### Immediate shadow updates
 
-Результат: после смерти клетки её тень сразу вычитается; при смене режима карты
-перестраиваются сразу, даже на паузе. Рост, энергетические коэффициенты,
-мутации и порядок обработки не менялись. Повторное удаление клетки не меняет
-карту; снятие тени одного источника сохраняет остальные источники.
+2026-09-06, branch `fix/immediate-shadow-updates`, based on the second pass.
 
-Регрессионные тесты сначала воспроизвели задержку. Контрольный пример:
-лист под умершим соседом получал 10 единиц энергии после содержания вместо 14.
-Теперь энергия соответствует открытому свету; семя может прорасти в том же
-шаге, когда исчезла закрывающая его крона.
+Result: a dead cell's shadow is subtracted immediately; mode changes rebuild maps immediately, including while paused. Growth, energy coefficients, mutations, and processing order were unchanged. Repeated cell removal does not alter maps; removing one source preserves other sources.
 
-Все 32 теста прошли. Карты независимо восстанавливались из живых клеток после
-шагов со смертями и каждые 100 тиков в двух прогонах до 5000 тиков.
-В браузере проверены переключения S в обе стороны на паузе с открытой карточкой:
-возраст и энергия не меняются, ошибок в консоли нет. Корректность чисел в карте
-проверена автоматическими тестами, а не визуально через Canvas.
+Regression tests first reproduced the delay. In a controlled example, a leaf below a dead neighbour received 10 energy units after upkeep instead of 14. It now receives the unshaded amount; a seed can germinate in the same step its covering canopy disappears.
 
-Сравнение с предыдущим коммитом bfe67f2, сид 16, тик 5000:
+All 32 tests passed. Maps were independently reconstructed from living cells after steps with deaths and every 100 ticks in two runs up to 5000 ticks. Browser checks exercised S in both directions while paused with a card open: age and energy stayed unchanged, with no console errors. Map values were verified through automated tests, not by visual inspection of Canvas.
 
-| Режим | Живых до → после | Рождений до → после | Семян до → после | Макс. поколение до → после |
+Comparison with the previous commit bfe67f2, seed 16, tick 5000:
+
+| Mode | Living before -> after | Births before -> after | Seeds before -> after | Max generation before -> after |
 |---|---|---|---|---|
-| canopy | 34 → 34 | 538 → 538 | 12 → 12 | 9 → 9 |
-| column | 1 → 18 | 125 → 147 | 24 → 9 | 8 → 9 |
+| canopy | 34 -> 34 | 538 -> 538 | 12 -> 12 | 9 -> 9 |
+| column | 1 -> 18 | 125 -> 147 | 24 -> 9 | 8 -> 9 |
 
-Совпадение сводных чисел в canopy не означает совпадения полного состояния:
-отличаются внутренние данные растений. Из 30 старых контрольных сумм изменились
-4 (сид 16, оба режима, тики 1500/5000). Их новые значения сохранены отдельным
-файлом; исходные суммы не перезаписаны. Это диагностическое сравнение одного
-сида, не доказательство лучшего баланса.
+Matching summary counts in canopy mode does not imply identical full states: internal plant data differs. Four of 30 old hashes changed (seed 16, both modes, ticks 1500/5000). New values are stored separately; the original hashes were not overwritten. This is a diagnostic comparison of one seed, not evidence of better balance.
 
-Следующие задачи остаются отдельными: политика хранения истории, управление
-скоростью и устойчивый демонстрационный сценарий. Долгие запуски могут менять
-исход из-за устранения задержки тени — это ожидаемое последствие исправления.
+History retention, speed controls, and a reliable demo scenario remain separate tasks. Long-run outcomes can change after removing shadow delay; that is an expected effect of the fix.
 
-### Слияние и CI
+### Merging and CI
 
-2026-09-06: по команде пользователя три завершённые ветки последовательно
-слиты fast-forward в `main`, итог b08746b отправлен в GitHub. Все 32 теста
-на итоговом состоянии прошли локально.
+2026-09-06: at the user's instruction, the three completed branches were merged into `main` in order using fast-forward merges. The resulting b08746b was pushed to GitHub. All 32 tests passed locally on the combined state.
 
-По последующему запросу пользователя в отдельной ветке `ci/automated-tests`
-добавлен GitHub Actions: `npm test`, Node.js 22, Ubuntu, пуши всех веток и
-pull request в main. Критерий готовности — успешный первый запуск в GitHub.
-Сборка и установка зависимостей не требуются. Деплой и защита main не входят
-в эту итерацию. Прежнее правило «CI/CD пока не настраиваем» заменено в AGENTS.md.
+Following the user's request, `ci/automated-tests` adds GitHub Actions: `npm test`, Node.js 22, Ubuntu, all branch pushes, and pull requests targeting main. Acceptance requires a successful first GitHub run. No build or package installation is needed. Deployment and branch protection are outside this iteration. The previous rule deferring CI/CD was replaced in AGENTS.md.
+
+CI passed for dc9bc7381b69d697e75e952f93177f3b729e8959:
+https://github.com/OlegRskn/tree-life/actions/runs/33996412736.
+PR #1 is ready for review; it has not been merged into main.
+
+### English repository content
+
+2026-09-06: the user requested English throughout GitHub and confirmed that this
+also includes repository documentation and code comments. Chat remains in Russian.
+Branch `chore/english-project-content` translates tracked documentation, comments,
+and interface text. Keyboard aliases for the Russian layout remain supported.
+Acceptance: no remaining Cyrillic prose in tracked text, unchanged simulation
+checkpoints, tests passing locally and on GitHub, and English UI verified in a browser.
+Existing untracked local files are outside this translation and are not published.
