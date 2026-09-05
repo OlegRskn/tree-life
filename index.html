@@ -10,15 +10,44 @@
       <canvas id="world" width="800" height="400"></canvas>
       <div id="info-panel">
         <div id="info-empty">Кликните на растение</div>
-        <div id="info-content" style="display:none">
-          <div class="info-row"><span class="label">energy</span><span id="info-energy"></span></div>
-          <div class="info-row"><span class="label">age</span><span id="info-age"></span></div>
-          <div class="info-row"><span class="label">cells</span><span id="info-cells"></span></div>
+        <div id="info-content" style="display: none">
+          <div class="info-row">
+            <span class="label">ID</span><span id="info-id"></span>
+          </div>
+          <div class="info-row">
+            <span class="label">Поколение</span
+            ><span id="info-generation"></span>
+          </div>
+          <div class="info-row">
+            <span class="label">Родился</span><span id="info-born"></span>
+          </div>
+          <div class="info-row">
+            <span class="label">energy</span><span id="info-energy"></span>
+          </div>
+          <div class="info-row">
+            <span class="label">age</span><span id="info-age"></span>
+          </div>
+          <div class="info-row">
+            <span class="label">cells</span><span id="info-cells"></span>
+          </div>
+          <div class="info-row lineage-row">
+            <span class="label">Предки</span>
+            <span id="info-parents"></span>
+          </div>
+          <div class="info-row lineage-row">
+            <span class="label">Потомки</span>
+            <span id="info-children"></span>
+          </div>
           <div class="dna-title">DNA</div>
           <div id="info-dna"></div>
         </div>
+        <div id="genome-section">
+          <div class="dna-title">Геномы</div>
+          <button id="btn-save-genome" disabled>Сохранить выбранный</button>
+          <div id="genome-list"></div>
+        </div>
       </div>
     </div>
-    <script src="main.js"></script>
+    <script src="main.js" type="module"></script>
   </body>
 </html>

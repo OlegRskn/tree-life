@@ -1,0 +1,182 @@
+[
+  {
+    "seed": 1,
+    "mode": "canopy",
+    "tick": 1,
+    "hash": "b1d434e7fff72d724580e7d3a0ba634a3f0afbd520874c71945016a94efa3849"
+  },
+  {
+    "seed": 1,
+    "mode": "canopy",
+    "tick": 100,
+    "hash": "1228d4704687a7de997937d8506fac78212e3462a5c19db9861fa03eb8a39f45"
+  },
+  {
+    "seed": 1,
+    "mode": "canopy",
+    "tick": 500,
+    "hash": "3300153c03b810ecec539c26c9be8564deb76aedd61f7eaf525ef32cbb21ed86"
+  },
+  {
+    "seed": 1,
+    "mode": "canopy",
+    "tick": 1500,
+    "hash": "ecad4ff0f5f3631ee9a2f4d8165a94a58cbd124857a1f4139507c1e020adf4a8"
+  },
+  {
+    "seed": 1,
+    "mode": "canopy",
+    "tick": 5000,
+    "hash": "c1823e5d7760c549cb73537314da099822a0033574aabd58aebfcbf98f50ca11"
+  },
+  {
+    "seed": 16,
+    "mode": "canopy",
+    "tick": 1,
+    "hash": "0b562d8c8ad21c6f9dfa4c4764e1a58f9a73a4001f306d747efe821c01e821a5"
+  },
+  {
+    "seed": 16,
+    "mode": "canopy",
+    "tick": 100,
+    "hash": "80c6df3b3018448c14732e21bf952403e1ae8f389592d6fcb7c55e4431c0242d"
+  },
+  {
+    "seed": 16,
+    "mode": "canopy",
+    "tick": 500,
+    "hash": "3b70ea5b4f4059e8ccc40b7f64d174e3387abf14264624967cb443aba4462ebc"
+  },
+  {
+    "seed": 16,
+    "mode": "canopy",
+    "tick": 1500,
+    "hash": "dca9699cfe8818520253c42440bff86d2eba24b6e9c875f616f4ff86437bc182"
+  },
+  {
+    "seed": 16,
+    "mode": "canopy",
+    "tick": 5000,
+    "hash": "26b9c64021cbb91dda6d5380e4a45ee6283c384f64e59d8a4720a2e8a3b49b5b"
+  },
+  {
+    "seed": 18,
+    "mode": "canopy",
+    "tick": 1,
+    "hash": "f10b8c0748cefb58305ed6827efd0e678f5d6033faf609cb3871b14b577d9dac"
+  },
+  {
+    "seed": 18,
+    "mode": "canopy",
+    "tick": 100,
+    "hash": "4bbf19e22e5003db23c9316a68e473d68eb1c4456e471affcd221fac1b1dc01f"
+  },
+  {
+    "seed": 18,
+    "mode": "canopy",
+    "tick": 500,
+    "hash": "1c917900411cae8d2d12edb45ce47dc65b278dffdf4b50312932672d270df5c3"
+  },
+  {
+    "seed": 18,
+    "mode": "canopy",
+    "tick": 1500,
+    "hash": "a9bd5dbe71625f5da2c51cb83983cff17d91f35f9cd3c559c1df6e9f5aed3792"
+  },
+  {
+    "seed": 18,
+    "mode": "canopy",
+    "tick": 5000,
+    "hash": "1dfd7588ea230cc299aae7bfc3242a7356f44fe3fcdf0d450cc4ba7a924d7313"
+  },
+  {
+    "seed": 1,
+    "mode": "column",
+    "tick": 1,
+    "hash": "8a69e28b9b013207da5e03f364d3f8f1fe9b5d5a36744b14af863fa8ae22b248"
+  },
+  {
+    "seed": 1,
+    "mode": "column",
+    "tick": 100,
+    "hash": "d0da2430c16ac05d027256fdcf20d6562c8d13ad0dfb1d37955ae2dbd01a5702"
+  },
+  {
+    "seed": 1,
+    "mode": "column",
+    "tick": 500,
+    "hash": "93b925c6f8ead376d79c4228311a65fef71f4db05186c48613a0d77e3fb12f96"
+  },
+  {
+    "seed": 1,
+    "mode": "column",
+    "tick": 1500,
+    "hash": "76ed9bc7270c7f4521bbed9a6aa7c8ae7baf2984ac6a54a5903202cf772d0185"
+  },
+  {
+    "seed": 1,
+    "mode": "column",
+    "tick": 5000,
+    "hash": "e820ed6af4ff74ee9fc4f46e0e2bbd3dad58c8f1a5cfeef57e77ab5022d25d88"
+  },
+  {
+    "seed": 16,
+    "mode": "column",
+    "tick": 1,
+    "hash": "92b1b5dcc21cdaf29f3eeb8829ff0af301a9430d90cde382c753349bb61b11ea"
+  },
+  {
+    "seed": 16,
+    "mode": "column",
+    "tick": 100,
+    "hash": "ac089b7b858070fc865c506471671102678b876ee3402fee4dd1d12f6f4b11dc"
+  },
+  {
+    "seed": 16,
+    "mode": "column",
+    "tick": 500,
+    "hash": "3b70ea5b4f4059e8ccc40b7f64d174e3387abf14264624967cb443aba4462ebc"
+  },
+  {
+    "seed": 16,
+    "mode": "column",
+    "tick": 1500,
+    "hash": "78456f6ba8ca96500098422c60b1fb916f5ea7b0ae5fef14fd4911aa7a638212"
+  },
+  {
+    "seed": 16,
+    "mode": "column",
+    "tick": 5000,
+    "hash": "43e7a51f78ef2eca84af45b62565eb4634dc3a03dcbd2f7c5da6ed50766ab969"
+  },
+  {
+    "seed": 18,
+    "mode": "column",
+    "tick": 1,
+    "hash": "6756168c7784957e21bd8b87159c1243543ef0131f4c1ce884a7ebb8e9160a7c"
+  },
+  {
+    "seed": 18,
+    "mode": "column",
+    "tick": 100,
+    "hash": "00b3aca623d4d6364203c45f972580acc4cc004d310297501d66ce01c3b52892"
+  },
+  {
+    "seed": 18,
+    "mode": "column",
+    "tick": 500,
+    "hash": "1c917900411cae8d2d12edb45ce47dc65b278dffdf4b50312932672d270df5c3"
+  },
+  {
+    "seed": 18,
+    "mode": "column",
+    "tick": 1500,
+    "hash": "801e8ddcdbeb90697641c53127b4aa1163a4189bfeff36e6834b6cd59ab2cb30"
+  },
+  {
+    "seed": 18,
+    "mode": "column",
+    "tick": 5000,
+    "hash": "ae3f3ea1042292597dbfe22c5c3165be21c79568126569e3153604c4c2677fc8"
+  }
+]
