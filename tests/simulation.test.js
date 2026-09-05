@@ -10,10 +10,21 @@ const fixtures = JSON.parse(readFileSync(new URL("./fixtures/legacy-states.json"
 // Hashes captured from the unmodified working copy before extraction, using the
 // same RNG. Include cells, DNA, seeds/parents, archives, counters and spatial maps.
 function fingerprint(state) {
-  const { tickCount, plants, seeds, nextPlantId, deathCounts,
+  const { tickCount, seeds, nextPlantId, deathCounts,
     populationHistory, occupancyMap, canopyMap } = state;
+  // Reconstruct the old wire shape from the registry, without changing state.
+  // The original loop incorrectly incremented dead plants' ages every growth
+  // tick. Only this obsolete field is adapted; all old golden hashes stay intact.
+  const plants = [...state.plantsById.values()];
+  function legacyAge(key, value) {
+    if (key === "age" && this.alive === false) {
+      const interval = state.config.GROWTH_INTERVAL;
+      return value + Math.floor(tickCount / interval) - Math.floor(this.diedAt / interval);
+    }
+    return value;
+  }
   return createHash("sha256").update(JSON.stringify({ tickCount, plants, seeds,
-    nextPlantId, deathCounts, populationHistory, occupancyMap, canopyMap })).digest("hex");
+    nextPlantId, deathCounts, populationHistory, occupancyMap, canopyMap }, legacyAge)).digest("hex");
 }
 
 for (const mode of ["canopy", "column"]) {

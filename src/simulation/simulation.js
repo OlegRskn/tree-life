@@ -1,6 +1,8 @@
 import { defaultConfig } from "./config.js";
 import { createGenetics } from "./genetics.js";
 import { createRandom } from "./random.js";
+import { createPopulation } from "./population.js";
+import { createSpatial } from "./spatial.js";
 
 export function leafMultiplier(above) {
   if (above === 0) return 2;
@@ -22,19 +24,23 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   const genetics = createGenetics(config, () => random());
   const { randomInt, makeRandomDNA, mutateDna, crossover, speciesHash } = genetics;
   const state = { config, shadowMode: "canopy" };
+  let population;
+  let spatial;
 
   function reset() {
     random = suppliedRandom ?? (seed === undefined ? Math.random : createRandom(seed));
+    population = createPopulation();
+    spatial = createSpatial(config);
     Object.assign(state, {
-      tickCount: 0, plants: [], seeds: [], nextPlantId: 1,
-      plantsById: new Map(), deathCounts: { age: 0, starvation: 0 },
-      populationHistory: [], occupancyMap: makeEmptyGrid(null),
-      canopyMap: makeEmptyGrid(0),
+      tickCount: 0, plants: population.active, seeds: [], nextPlantId: 1,
+      plantsById: population.byId, deathCounts: { age: 0, starvation: 0 },
+      populationHistory: [], occupancyMap: spatial.occupancyMap,
+      canopyMap: spatial.canopyMap,
       world: Array.from({ length: config.WIDTH }, () =>
         Array.from({ length: config.HEIGHT }, (_, y) =>
           y < config.GROUND_LEVEL ? "air" : "soil")),
     });
-    state.plants.push(makePlant(Math.floor(config.WIDTH / 2), config.GROUND_LEVEL - 1));
+    makePlant(Math.floor(config.WIDTH / 2), config.GROUND_LEVEL - 1);
   }
 
   function toggleShadowMode() {
@@ -42,14 +48,14 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   }
 
   function plantAt(x, y) {
-    const cell = state.occupancyMap[x]?.[y];
+    const cell = spatial.cellAt(x, y);
     return cell ? state.plantsById.get(cell.plantId) : null;
   }
 
   function step() {
     state.tickCount++;
 
-    rebuildCaches();
+    spatial.beginStep(state.plants, state.shadowMode);
 
     for (const plant of state.plants) {
       if (state.tickCount % config.GROWTH_INTERVAL === 0) {
@@ -62,6 +68,8 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       }
     }
 
+    population.finishPlantPhase();
+
     if (state.tickCount % config.SEED_FALL_INTERVAL === 0) {
       for (const seed of state.seeds) {
         updateSeed(seed);
@@ -71,11 +79,10 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
 
     // Снимок численности популяции для графика
     if (state.tickCount % config.POPULATION_SNAPSHOT_INTERVAL === 0) {
-      const alive = state.plants.filter((p) => p.alive);
-      const aliveGens = alive.map((p) => p.generation);
+      const aliveGens = state.plants.map((p) => p.generation);
       state.populationHistory.push({
         tick: state.tickCount,
-        alive: alive.length,
+        alive: state.plants.length,
         maxGen: aliveGens.length ? Math.max(...aliveGens) : 0,
       });
       if (state.populationHistory.length > config.HISTORY_MAX_SNAPSHOTS) {
@@ -83,72 +90,6 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       }
     }
 
-  }
-
-  function makeEmptyGrid(fill) {
-    return Array.from({ length: config.WIDTH }, () =>
-      Array(config.HEIGHT).fill(fill),
-    );
-  }
-
-  function rebuildCaches() {
-    // Очистка
-    for (let x = 0; x < config.WIDTH; x++) {
-      for (let y = 0; y < config.HEIGHT; y++) {
-        state.occupancyMap[x][y] = null;
-        state.canopyMap[x][y] = 0;
-      }
-    }
-    // Заполнение occupancy
-    for (const plant of state.plants) {
-      if (!plant.alive) continue;
-      for (const cell of plant.cells) {
-        state.occupancyMap[cell.x][cell.y] = cell;
-      }
-    }
-    // Заполнение canopy зависит от режима
-    if (state.shadowMode === "canopy") {
-      // только листья отбрасывают тень
-      for (let x = 0; x < config.WIDTH; x++) {
-        let count = 0;
-        for (let y = 0; y < config.HEIGHT; y++) {
-          state.canopyMap[x][y] = count;
-          const cell = state.occupancyMap[x][y];
-          if (cell && cell.type === "leaf") count++;
-        }
-      }
-    } else {
-      // column: любая клетка отбрасывает тень
-      for (let x = 0; x < config.WIDTH; x++) {
-        let count = 0;
-        for (let y = 0; y < config.HEIGHT; y++) {
-          state.canopyMap[x][y] = count;
-          if (state.occupancyMap[x][y] !== null) count++;
-        }
-      }
-    }
-  }
-
-  function isOccupiedByPlant(x, y) {
-    return state.occupancyMap[x][y] !== null;
-  }
-
-  function countCanopyAbove(x, y) {
-    return state.canopyMap[x][y];
-  }
-
-  function markLeaf(x, y) {
-    if (state.shadowMode !== "canopy") return;
-    for (let yy = y + 1; yy < config.HEIGHT; yy++) {
-      state.canopyMap[x][yy]++;
-    }
-  }
-
-  function markCell(x, y) {
-    if (state.shadowMode === "canopy") return;
-    for (let yy = y + 1; yy < config.HEIGHT; yy++) {
-      state.canopyMap[x][yy]++;
-    }
   }
 
   function growPlant(plant) {
@@ -188,8 +129,8 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       const newY = sprout.y + config.DIR_VECTORS[dir].dy;
       if (newX < 0 || newX >= config.WIDTH) continue;
       if (newY < 0 || newY >= config.GROUND_LEVEL) continue;
-      if (isOccupiedByPlant(newX, newY)) continue;
-      if (countCanopyAbove(newX, newY) > config.CANOPY_LIMIT) continue;
+      if (spatial.isOccupied(newX, newY)) continue;
+      if (spatial.countCanopyAbove(newX, newY) > config.CANOPY_LIMIT) continue;
       const newCell = {
         x: newX,
         y: newY,
@@ -199,8 +140,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
         plantId: plant.id,
       };
       plant.cells.push(newCell);
-      state.occupancyMap[newX][newY] = newCell;
-      markCell(newX, newY); // в column-режиме новая клетка сразу отбрасывает тень
+      spatial.occupy(newCell, state.shadowMode);
       grewAny = true;
     }
     if (grewAny) {
@@ -209,7 +149,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     }
     if (!wantedGrowth) {
       sprout.type = "leaf";
-      markLeaf(sprout.x, sprout.y);
+      spatial.markLeaf(sprout, state.shadowMode);
       return;
     }
     // спраут хотел расти, но не смог — копит на семя
@@ -230,7 +170,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     state.deathCounts[plant.causeOfDeath]++;
     const stressed = plant.causeOfDeath === "starvation";
     for (const cell of plant.cells) {
-      state.occupancyMap[cell.x][cell.y] = null;
+      spatial.release(cell);
       if (cell.type === "ready") {
         state.seeds.push(makeSeed(cell.x, cell.y, plant.dna, stressed, [plant]));
       }
@@ -241,7 +181,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   function collectEnergy(plant) {
     for (const cell of plant.cells) {
       if (cell.type !== "leaf") continue;
-      const above = countCanopyAbove(cell.x, cell.y);
+      const above = spatial.countCanopyAbove(cell.x, cell.y);
       const level = config.GROUND_LEVEL - cell.y + 5;
       plant.energy += leafMultiplier(above) * level;
     }
@@ -272,7 +212,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
 
     const below = seed.y + 1;
     const onSoil = below >= config.GROUND_LEVEL;
-    const onPlant = !onSoil && isOccupiedByPlant(seed.x, below);
+    const onPlant = !onSoil && spatial.isOccupied(seed.x, below);
 
     if (!onSoil && !onPlant) {
       seed.y = below;
@@ -282,11 +222,11 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
 
     seed.age++;
     if (seed.age >= config.GERMINATION_TIME) {
-      if (isOccupiedByPlant(seed.x, seed.y)) {
+      if (spatial.isOccupied(seed.x, seed.y)) {
         seed.germinated = true;
         return;
       }
-      if (countCanopyAbove(seed.x, seed.y) > 0) {
+      if (spatial.countCanopyAbove(seed.x, seed.y) > 0) {
         // под кроной нет солнца — семя не прорастает
         seed.germinated = true;
         return;
@@ -315,7 +255,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
         plantParents = seed.parents;
       }
 
-      state.plants.push(makePlant(seed.x, seed.y, plantDna, plantParents));
+      makePlant(seed.x, seed.y, plantDna, plantParents);
       seed.germinated = true;
     }
   }
@@ -349,20 +289,8 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     // Кешируем сигнатуру вида — ДНК фиксирована до конца жизни.
     plant.speciesHash = speciesHash(plant.dna);
 
-    // Регистрируем в индексе
-    state.plantsById.set(id, plant);
-
-    // Пушим ID нового растения в children каждого родителя (O(1) поиск потомков)
-    for (const parent of parents) {
-      parent.children.push(id);
-    }
-
-    // Сразу же отражаем стартовую клетку в кэше — иначе в текущем тике
-    // другие проверки `isOccupied` и тени её не увидят.
-
-
-    state.occupancyMap[x][y] = plant.cells[0];
-    markCell(x, y);
+    population.register(plant);
+    spatial.occupy(plant.cells[0], state.shadowMode);
     return plant;
   }
 
@@ -388,8 +316,8 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     for (let attempt = 0; attempt < 10; attempt++) {
       const x = Math.floor(config.WIDTH / 2) + randomInt(-10, 10);
       if (x < 0 || x >= config.WIDTH) continue;
-      if (!isOccupiedByPlant(x, config.GROUND_LEVEL - 1)) {
-        state.plants.push(makePlant(x, config.GROUND_LEVEL - 1, dnaCopy));
+      if (!spatial.isOccupied(x, config.GROUND_LEVEL - 1)) {
+        makePlant(x, config.GROUND_LEVEL - 1, dnaCopy);
         return;
       }
     }

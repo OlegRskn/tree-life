@@ -93,7 +93,6 @@ export function createRenderer(canvas, simulation, viewState) {
 
   function drawPlants() {
     for (const plant of state.plants) {
-      if (!plant.alive) continue;
       for (const cell of plant.cells) {
         ctx.fillStyle = cellColor(plant, cell);
         ctx.fillRect(
@@ -178,7 +177,6 @@ export function createRenderer(canvas, simulation, viewState) {
     const speciesCounts = new Map();
 
     for (const p of state.plants) {
-      if (!p.alive) continue;
       aliveCount++;
       genSum += p.generation;
       if (p.generation > maxGen) maxGen = p.generation;
