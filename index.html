@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>Tree Life</title>
@@ -9,17 +9,17 @@
     <div id="app">
       <canvas id="world" width="800" height="400"></canvas>
       <div id="info-panel">
-        <div id="info-empty">Кликните на растение</div>
+        <div id="info-empty">Click a plant</div>
         <div id="info-content" style="display: none">
           <div class="info-row">
             <span class="label">ID</span><span id="info-id"></span>
           </div>
           <div class="info-row">
-            <span class="label">Поколение</span
+            <span class="label">Generation</span
             ><span id="info-generation"></span>
           </div>
           <div class="info-row">
-            <span class="label">Родился</span><span id="info-born"></span>
+            <span class="label">Born</span><span id="info-born"></span>
           </div>
           <div class="info-row">
             <span class="label">energy</span><span id="info-energy"></span>
@@ -31,19 +31,19 @@
             <span class="label">cells</span><span id="info-cells"></span>
           </div>
           <div class="info-row lineage-row">
-            <span class="label">Предки</span>
+            <span class="label">Parents</span>
             <span id="info-parents"></span>
           </div>
           <div class="info-row lineage-row">
-            <span class="label">Потомки</span>
+            <span class="label">Children</span>
             <span id="info-children"></span>
           </div>
           <div class="dna-title">DNA</div>
           <div id="info-dna"></div>
         </div>
         <div id="genome-section">
-          <div class="dna-title">Геномы</div>
-          <button id="btn-save-genome" disabled>Сохранить выбранный</button>
+          <div class="dna-title">Genomes</div>
+          <button id="btn-save-genome" disabled>Save selected</button>
           <div id="genome-list"></div>
         </div>
       </div>

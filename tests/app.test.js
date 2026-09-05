@@ -27,7 +27,9 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
   };
   doc.createElement = () => new Element();
   const win = new Element();
-  Object.assign(win, { innerWidth: 1280, innerHeight: 720, prompt: () => "test-genome" });
+  let promptMessage;
+  Object.assign(win, { innerWidth: 1280, innerHeight: 720,
+    prompt(message) { promptMessage = message; return "test-genome"; } });
   const data = new Map();
   const storage = { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) };
   const frames = [];
@@ -48,6 +50,8 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
     assert.equal(element("info-id").textContent, "#1");
     assert.equal(element("btn-save-genome").disabled, false);
     assert.equal(element("info-dna").children.length, 17);
+    assert.match(element("info-born").textContent, /^tick /);
+    assert.match(element("genome-list").innerHTML, /No saved genomes/);
 
     key(" ");
     frame();
@@ -56,17 +60,23 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
     assert.ok(drawnText.includes("labels: gene"));
     key("S");
     assert.ok(drawnText.includes("shadow: column"));
+    key("\u044b"); // Same physical key on a Russian keyboard layout.
+    assert.ok(drawnText.includes("shadow: canopy"));
+    key("\u0434");
+    assert.ok(drawnText.includes("labels: energy"));
 
     element("btn-save-genome").listeners.click();
+    assert.equal(promptMessage, "Genome name:");
     assert.ok(JSON.parse(data.get("genomes"))["test-genome"]);
     const actions = element("genome-list").children[0].children[1];
+    assert.equal(actions.children[0].textContent, "Plant");
     actions.children[0].listeners.click();
     key("l");
     assert.ok(drawnText.includes("plants: 2"));
     actions.children[1].listeners.click();
     assert.deepEqual(JSON.parse(data.get("genomes")), {});
 
-    key("R");
+    key("\u043a");
     assert.equal(element("info-content").style.display, "none");
     assert.equal(element("btn-save-genome").disabled, true);
     assert.equal(frames.length, 1);

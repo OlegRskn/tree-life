@@ -1,161 +1,159 @@
 # Tree Life
 
-Экспериментальная эволюционная песочница: растения растут по геному, получают
-энергию от света и оставляют семена с мутациями.
+An experimental evolution sandbox: plants grow from genomes, collect light
+energy, and produce seeds with mutations.
 
-## Запуск
+## Running the project
 
-Нужен Node.js 22 или новее. Внешних зависимостей и сборки нет.
+Requires Node.js 22 or newer. There are no external dependencies or build step.
 
 ```sh
 npm start
 ```
 
-Открыть http://127.0.0.1:8080. Сервер работает только на локальном интерфейсе.
-Для другого порта задать переменную окружения `PORT`. Также подходит обычный
-статический HTTP-сервер с корнем в папке проекта. Через `file://` ES-модули
-могут не загружаться.
+Open http://127.0.0.1:8080. The server listens only on the local interface.
+Set the `PORT` environment variable to use another port. Any static HTTP server
+rooted at the project directory also works. ES modules may not load via `file://`.
 
-Управление: пробел — пауза, R — новый мир, L — подписи, S — правила затенения.
-Поддерживаются соответствующие клавиши русской раскладки. Клик по растению
-открывает карточку; ссылки в карточке ведут к его родителям и потомкам.
-Геномы сохраняются в localStorage текущего адреса браузера.
+Controls: Space pauses, R creates a new world, L changes labels, and S changes
+shadow rules. The corresponding keys on a Russian keyboard layout also work.
+Click a plant to inspect it; links in its card navigate to parents and children.
+Genomes are saved in localStorage for the current browser origin.
 
-## Проверки
+## Tests
 
 ```sh
 npm test
 ```
 
-Используется встроенный `node:test`. Проверки включают:
+Tests use the built-in `node:test` runner and cover:
 
-- 30 контрольных состояний исходного прототипа: 3 сида, 2 режима тени,
-  тики 1, 100, 500, 1500 и 5000;
-- повторяемый сброс мира, независимость экземпляров и настроек, посадку генома;
-- исключение умерших из активного массива, фиксацию возраста смерти,
-  сохранение родословной и порядка выживших при нескольких смертях;
-- обновление занятости и тени, границы мира и переключение правил затенения;
-- немедленное снятие тени, фотосинтез/прорастание после смерти соседа в том же
-  шаге и сверку карт с независимым пересчётом в прогонах до 5000 тиков;
-- совместимость формата библиотеки геномов и передачу ошибок хранилища;
-- интеграцию настоящего `main.js`, модели, рендера и UI с подставными DOM,
-  хранилищем и очередью кадров: выбор, паузу, переключения, сохранение,
-  посев, удаление и рестарт без удвоения цикла.
+- 30 reference states from the original prototype: 3 seeds, 2 shadow modes,
+  and ticks 1, 100, 500, 1500, and 5000;
+- repeatable resets, independent instances/settings, and planting saved genomes;
+- removing dead plants from the active array, preserving age at death,
+  lineage, and survivor order when multiple plants die;
+- occupancy/shadow updates, world boundaries, and shadow mode changes;
+- immediate shadow removal, photosynthesis/germination after a neighbour dies
+  in the same step, and independent map reconstruction in runs up to 5000 ticks;
+- compatibility with the genome library format and propagation of storage errors;
+- integration of the real `main.js`, model, renderer, and UI with stubbed DOM,
+  storage, and frame scheduling: selection, pause, toggles, saving, planting,
+  deletion, and restart without duplicating the frame loop.
 
 ### GitHub Actions
 
-Workflow `.github/workflows/tests.yml` запускает `npm test` на Ubuntu с Node.js 22
-при пуше любой ветки и при pull request в `main`. После включения workflow в
-основную ветку доступен также ручной запуск в разделе Actions.
-Новые запуски отменяют устаревшие проверки того же события и ветки.
+The workflow in `.github/workflows/tests.yml` runs `npm test` on Ubuntu with
+Node.js 22 for every branch push and pull request targeting `main`. Once the
+workflow reaches the default branch, manual runs are also available in Actions.
+New runs cancel outdated checks for the same event and branch.
 
-Внешних npm-зависимостей нет, поэтому установка пакетов и кэш не нужны.
-Используются официальные [checkout](https://github.com/actions/checkout) и
-[setup-node](https://github.com/actions/setup-node), закреплённые по SHA.
-У workflow только права чтения содержимого репозитория; деплой не выполняется.
-CI проверяет автоматические тесты; браузерную проверку интерфейса выполняем отдельно.
-Workflow сам по себе не запрещает слияние при ошибках: защита ветки пока не настроена.
+There are no external npm dependencies, so package installation and caching
+are unnecessary. The official [checkout](https://github.com/actions/checkout)
+and [setup-node](https://github.com/actions/setup-node) actions are pinned to
+commit SHAs. The workflow has read-only repository permissions and does not deploy.
+CI covers automated tests; browser UI verification is performed separately.
+The workflow alone does not block failed merges: branch protection is not configured.
 
-Контрольные SHA-256 в `tests/fixtures/legacy-states.json` получены из рабочей
-копии `main.js` до рефакторинга 2026-09-05. Они включают растения, геномы,
-семена и родителей, счётчики, историю популяции и пространственные карты.
-Это регрессия на сохранение правил, а не подтверждение правильности биологической
-модели. При намеренном изменении правил следует пересмотреть эти ожидания.
+### Reference states
 
-После отделения архива сравнение восстанавливает прежний порядок растений из
-реестра ID. Адаптер только для тестов воспроизводит старое ошибочное увеличение
-возраста умерших, чтобы сохранить исходные контрольные суммы без изменения.
-В самой модели возраст после смерти больше не растёт; это проверяется отдельно.
+The SHA-256 values in `tests/fixtures/legacy-states.json` were captured from the
+working copy of `main.js` before the 2026-09-05 refactor. They include plants,
+genomes, seeds and parents, counters, population history, and spatial maps.
+These tests preserve simulation rules; they do not validate biological realism.
+Intentional rule changes require reassessing the expectations.
 
-Исправление задержки тени намеренно изменило 4 из 30 контрольных состояний:
-сид 16, оба режима, тики 1500 и 5000. Новые значения лежат отдельно в
-`tests/fixtures/immediate-shadow-states.json`; исходный файл сохранён.
-Остальные 26 состояний по-прежнему сравниваются с исходными значениями.
-Корректность исправления дополнительно проверяется сценариями с заранее
-известными энергией/прорастанием и независимым восстановлением карт из тел.
+After separating the archive, comparisons reconstruct the original plant order
+from the ID registry. A test-only adapter reproduces the old erroneous increase
+in dead plants' ages to retain the original hashes. The actual model now stops
+age at death; a separate regression test verifies this.
 
-Интеграционный тест с подставным DOM не проверяет браузерную вёрстку. В браузере
-нужно дополнительно проверить запуск, пробел/R/L/S, выбор растения, родословную,
-сохранение/посев/удаление генома и изменение размера окна.
+Fixing delayed shadows intentionally changed 4 of the 30 checkpoints: seed 16,
+both modes, ticks 1500 and 5000. New values are stored separately in
+`tests/fixtures/immediate-shadow-states.json`; the original file is unchanged.
+The other 26 checkpoints still use the original values. Additional validation
+uses scenarios with known energy/germination outcomes and independent map
+reconstruction from plant bodies.
 
-## Архитектура
+Stubbed-DOM integration tests do not verify browser layout. In a browser, also
+check startup, Space/R/L/S, plant selection, lineage navigation, genome saving/
+planting/deletion, and resizing.
 
-| Часть | Ответственность |
+## Architecture
+
+| Component | Responsibility |
 |---|---|
-| `main.js` | Соединяет части и управляет очередью кадров |
-| `src/simulation/simulation.js` | Владеет состоянием и выполняет шаг модели |
-| `src/simulation/population.js` | Живая популяция и реестр родословной |
-| `src/simulation/spatial.js` | Занятость клеток и обновление тени |
-| `src/simulation/genetics.js` | Генерация, мутация и скрещивание ДНК |
-| `src/simulation/random.js` | Независимый генератор случайности с числовым сидом |
-| `src/simulation/config.js` | Значения правил мира по умолчанию |
-| `src/rendering/renderer.js` | Читает модель и рисует Canvas |
-| `src/rendering/config.js` | Настройки отображения |
-| `src/ui/ui.js` | Карточка растения, клавиатура, выбор и библиотека геномов |
-| `src/persistence/genomes.js` | Читает и записывает геномы через переданное хранилище |
+| `main.js` | Connects components and schedules frames |
+| `src/simulation/simulation.js` | Owns state and advances the model |
+| `src/simulation/population.js` | Active population and lineage registry |
+| `src/simulation/spatial.js` | Cell occupancy and shadow updates |
+| `src/simulation/genetics.js` | DNA generation, mutation, and crossover |
+| `src/simulation/random.js` | Independent random generator with a numeric seed |
+| `src/simulation/config.js` | Default world rules |
+| `src/rendering/renderer.js` | Reads the model and draws on Canvas |
+| `src/rendering/config.js` | Display settings |
+| `src/ui/ui.js` | Plant inspector, keyboard, selection, and genome library |
+| `src/persistence/genomes.js` | Reads/writes genomes through supplied storage |
 
-Модель не обращается к DOM, Canvas, localStorage и requestAnimationFrame.
-Рендерер читает состояние; UI вызывает операции модели. Камера/подписи/выбор
-относятся к состоянию отображения. Режим тени относится к модели: он влияет
-на рост и фотосинтез. Циклических импортов нет.
+The model never accesses the DOM, Canvas, localStorage, or requestAnimationFrame.
+The renderer reads state; the UI invokes model operations. Camera, labels, and
+selection belong to view state. Shadow mode belongs to the model because it
+affects growth and photosynthesis. There are no circular imports.
 
-`consts.js` оставлен как совместимый экспорт значений для старых экспериментов;
-приложение использует настройки из `src/`. Правки значений по умолчанию нужно
-вносить в соответствующий config-файл.
+`consts.js` remains as a compatibility export for older experiments. The app
+uses settings from `src/`; edit the relevant config file to change defaults.
 
-### Работа без браузера
+### Running without a browser
 
 ```js
 import { createSimulation } from "./src/simulation/simulation.js";
 
 const simulation = createSimulation({ seed: 16 });
 for (let i = 0; i < 5000; i++) simulation.step();
-console.log(simulation.state.plants.length); // только живые
-simulation.reset(); // тот же старт для заданного сида
+console.log(simulation.state.plants.length); // Living plants only
+simulation.reset(); // Repeat the initial state for this seed
 ```
 
-Сид — целое число от 0 до 4294967295. Без сида используется Math.random,
-поэтому обычный браузерный запуск остаётся случайным. Для специальных опытов
-можно передать функцию `random`; она имеет приоритет над `seed`, её
-последовательность продолжается при сбросе.
+A seed is an integer from 0 to 4294967295. Without one, the model uses Math.random,
+so normal browser launches remain random. For special experiments, supply a
+`random` function; it takes precedence over `seed` and continues its sequence
+across resets.
 
-`createSimulation({ config: { WIDTH: 120, HEIGHT: 60 }, seed: 16 })` создаёт
-мир с отдельными настройками; уровень земли вычисляется из высоты.
-Размеры мира следует задавать при создании, а не менять у работающего мира.
+`createSimulation({ config: { WIDTH: 120, HEIGHT: 60 }, seed: 16 })` creates a
+world with its own settings; ground level is derived from height. Set world
+dimensions at creation rather than changing them in a running world.
 
 API: `step()`, `reset()`, `plantSavedGenome(dna)`, `plantAt(x, y)`,
-`toggleShadowMode()`, `state`. Состояние доступно для чтения и диагностики;
-обычный UI не должен вручную менять растения и карты. `reset()` сохраняет
-ссылку на объект `state`, но заменяет его коллекции. Выбор старого растения
-при сбросе очищает UI.
+`toggleShadowMode()`, and `state`. State is available for reading and diagnostics;
+normal UI code should not mutate plants or maps directly. `reset()` preserves
+the `state` object reference but replaces its collections. The UI clears the
+old selection when resetting.
 
-### Популяция и пространственные карты
+### Population and spatial maps
 
-`state.plants` содержит только живые растения между шагами. После обработки
-растений массив уплотняется на месте с сохранением порядка, затем прорастают
-семена. Это исключает пропуски соседей при нескольких смертях в одном шаге.
-`state.plantsById` хранит всех: живых и архивные записи умерших с пустым `cells`.
-Ссылки на выбранное растение и родителей семян остаются действительными.
-Возраст и энергия умершего больше не изменяются; список потомков может пополняться.
+Between steps, `state.plants` contains only living plants. After processing plants,
+the array is compacted in place while preserving order; seeds then germinate.
+This prevents neighbours from being skipped when multiple plants die in one step.
+`state.plantsById` contains every plant: living plants and archived dead records
+with empty `cells`. References held by selection and seed parents remain valid.
+Age and energy stop changing after death; the children list may still grow.
 
-Шаг модели, сбор метрик и обычная отрисовка обходят активную популяцию, а не всю
-историю. Выбранная родословная по-прежнему требует обхода связанных записей.
-Архив метаданных и ДНК пока не ограничен по памяти — политика хранения остаётся
-отдельной задачей.
+Model steps, metrics, and normal rendering traverse the active population rather
+than the entire history. Selected lineage views still traverse related records.
+The metadata/DNA archive has no memory bound yet; retention is a separate task.
 
-`spatial.beginStep()` восстанавливает карты в начале каждого шага. Новые клетки
-занимают место сразу; новые источники тени сразу влияют на клетки ниже.
-Смерть освобождает место и снимает тень сразу. Последующие растения и семена
-в этом шаге используют обновлённое освещение. Переключение режима сразу
-перестраивает карты, в том числе на паузе, без изменения времени и энергии.
-Порядок обработки остаётся последовательным: уже обработанные растения
-не пересчитываются задним числом. Удаление клетки учитывает её тип и режим,
-сохраняет тень остальных клеток; повторное удаление той же клетки безопасно.
+`spatial.beginStep()` reconstructs maps at the start of each step. New cells occupy
+space immediately, and new shadow sources immediately affect cells below them.
+Death frees occupancy and removes shadows immediately. Subsequent plants and seeds
+in the same step use updated light. Switching modes immediately reconstructs maps,
+even while paused, without changing time or energy. Processing remains sequential:
+already-processed plants are not recomputed retroactively. Cell removal accounts
+for type and mode, preserves other shadows, and is safe to repeat for the same cell.
 
-### Что пока отложено
+### Deferred work
 
-Сохранены порядок обработки и правила роста/энергии/семян. DOM карточки всё ещё
-перестраивается при отрисовке. Приложение выполняет один шаг на кадр, хотя модель
-позволяет работать независимо от кадров. Сохранение полного мира, поле ввода сида,
-новый баланс и новые механики не входят в эти архитектурные итерации.
-План и решения находятся в `PROJECT-DIRECTION.md`.
+Processing order and growth/energy/seed rules are preserved apart from the documented
+shadow fix. The inspector DOM is still rebuilt during rendering. The app advances
+one step per frame even though the model can run independently. Full-world saves,
+a seed input field, balance changes, and new mechanics are outside these architecture
+iterations. Plans and decisions are recorded in `PROJECT-DIRECTION.md`.

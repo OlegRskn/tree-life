@@ -21,21 +21,21 @@ export const defaultConfig = {
   MAX_AGE: 92,
   GERMINATION_TIME: 30,
 
-  // Семена: спраут, который не смог расти, тратит энергию растения,
-  // чтобы накопить SEED_THRESHOLD. Когда накопил — становится "ready".
+  // Seeds: a blocked sprout spends plant energy
+  // to accumulate SEED_THRESHOLD, then becomes "ready".
   SEED_ENERGY_COST: 100,
   SEED_THRESHOLD: 500,
 
-  // Тень: над клеткой больше CANOPY_LIMIT листьев — рост невозможен.
+  // Growth is blocked when more than CANOPY_LIMIT leaves are above a cell.
   CANOPY_LIMIT: 3,
 
-  // Мутации: с вероятностью MUTATION_RATE на каждую из 64 позиций ДНК
-  // применяется один из операторов: мягкий сдвиг, полная замена или обмен генов.
+  // Each of the 64 DNA positions has MUTATION_RATE probability
+  // of a point mutation; a separate rare operation swaps genes.
   MUTATION_RATE: 0.02,
-  MUT_DRIFT_WEIGHT: 70, // % мутаций — мягкий сдвиг ±1
-  MUT_REPLACE_WEIGHT: 25, // % мутаций — полная замена
-  MUT_SWAP_WEIGHT: 5, // % мутаций — обмен двух генов (структурная)
-  STRESS_MULTIPLIER: 2, // множитель рейта у голодных родителей
+  MUT_DRIFT_WEIGHT: 70, // relative weight for drift by +/-1
+  MUT_REPLACE_WEIGHT: 25, // relative weight for replacement
+  MUT_SWAP_WEIGHT: 5, // scales the separate gene-swap probability
+  STRESS_MULTIPLIER: 2, // mutation-rate multiplier for starving parents
 
   // === DNA ===
   GENE_COUNT: 16,
