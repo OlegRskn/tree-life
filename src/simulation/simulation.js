@@ -45,6 +45,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
 
   function toggleShadowMode() {
     state.shadowMode = state.shadowMode === "canopy" ? "column" : "canopy";
+    spatial.beginStep(state.plants, state.shadowMode);
   }
 
   function plantAt(x, y) {
@@ -170,7 +171,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     state.deathCounts[plant.causeOfDeath]++;
     const stressed = plant.causeOfDeath === "starvation";
     for (const cell of plant.cells) {
-      spatial.release(cell);
+      spatial.release(cell, state.shadowMode);
       if (cell.type === "ready") {
         state.seeds.push(makeSeed(cell.x, cell.y, plant.dna, stressed, [plant]));
       }

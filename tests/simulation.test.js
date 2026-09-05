@@ -6,6 +6,7 @@ import { createSimulation } from "../src/simulation/simulation.js";
 import { createRandom } from "../src/simulation/random.js";
 
 const fixtures = JSON.parse(readFileSync(new URL("./fixtures/legacy-states.json", import.meta.url)));
+const shadowCorrections = JSON.parse(readFileSync(new URL("./fixtures/immediate-shadow-states.json", import.meta.url)));
 
 // Hashes captured from the unmodified working copy before extraction, using the
 // same RNG. Include cells, DNA, seeds/parents, archives, counters and spatial maps.
@@ -14,7 +15,7 @@ function fingerprint(state) {
     populationHistory, occupancyMap, canopyMap } = state;
   // Reconstruct the old wire shape from the registry, without changing state.
   // The original loop incorrectly incremented dead plants' ages every growth
-  // tick. Only this obsolete field is adapted; all old golden hashes stay intact.
+  // tick. This obsolete field is adapted only for historical serialization.
   const plants = [...state.plantsById.values()];
   function legacyAge(key, value) {
     if (key === "age" && this.alive === false) {
@@ -29,12 +30,15 @@ function fingerprint(state) {
 
 for (const mode of ["canopy", "column"]) {
   for (const seed of [1, 16, 18]) {
-    test(`legacy equivalence: seed ${seed}, ${mode}`, () => {
+    test(`regression snapshots with immediate shadows: seed ${seed}, ${mode}`, () => {
       const simulation = createSimulation({ seed });
       if (mode === "column") simulation.toggleShadowMode();
       for (const fixture of fixtures.filter(f => f.seed === seed && f.mode === mode)) {
         while (simulation.state.tickCount < fixture.tick) simulation.step();
-        assert.equal(fingerprint(simulation.state), fixture.hash, `tick ${fixture.tick}`);
+        // Four later checkpoints for seed 16 intentionally changed when stale
+        // shadows were removed. Keep original data, overlay only this fix.
+        const expected = shadowCorrections.find(f => f.seed === seed && f.mode === mode && f.tick === fixture.tick) ?? fixture;
+        assert.equal(fingerprint(simulation.state), expected.hash, `tick ${fixture.tick}`);
       }
     });
   }

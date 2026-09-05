@@ -27,17 +27,39 @@ test("column shadows count each cell once, including a sprout becoming a leaf", 
   assert.deepEqual(spatial.canopyMap[0], [0, 1, 1, 1, 1, 2]);
 });
 
-test("removal frees the cell now and expires its shadow on the next step", () => {
+test("removal frees the cell and its shadow immediately", () => {
   for (const mode of ["canopy", "column"]) {
     const spatial = createSpatial(config);
     const leaf = { x: 1, y: 0, type: "leaf" };
     spatial.beginStep([{ cells: [leaf] }], mode);
-    spatial.release(leaf);
+    spatial.release(leaf, mode);
     assert.equal(spatial.cellAt(1, 0), null);
-    assert.equal(spatial.countCanopyAbove(1, 1), 1);
+    assert.equal(spatial.countCanopyAbove(1, 1), 0);
     spatial.beginStep([], mode);
     assert.deepEqual(spatial.canopyMap[1], [0, 0, 0, 0, 0, 0]);
   }
+});
+
+test("removing one source preserves other shadows and repeated removal is harmless", () => {
+  for (const mode of ["canopy", "column"]) {
+    const spatial = createSpatial(config);
+    const upper = { x: 1, y: 0, type: "leaf" };
+    const lower = { x: 1, y: 2, type: "leaf" };
+    spatial.beginStep([{ cells: [upper, lower] }], mode);
+    spatial.release(upper, mode);
+    spatial.release(upper, mode);
+    assert.deepEqual(spatial.canopyMap[1], [0, 0, 0, 1, 1, 1]);
+    assert.equal(spatial.cellAt(1, 2), lower);
+  }
+});
+
+test("removing wood in canopy mode does not remove a leaf's shadow", () => {
+  const spatial = createSpatial(config);
+  const wood = { x: 1, y: 0, type: "wood" };
+  const leaf = { x: 1, y: 2, type: "leaf" };
+  spatial.beginStep([{ cells: [wood, leaf] }], "canopy");
+  spatial.release(wood, "canopy");
+  assert.deepEqual(spatial.canopyMap[1], [0, 0, 0, 1, 1, 1]);
 });
 
 test("beginStep rebuilds maps for a new mode and keeps their identities", () => {

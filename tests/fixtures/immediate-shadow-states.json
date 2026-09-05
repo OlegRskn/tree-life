@@ -1,0 +1,26 @@
+[
+  {
+    "seed": 16,
+    "mode": "canopy",
+    "tick": 1500,
+    "hash": "9bc379bda9f6a6f4d8f766d654e8154e5333cc4c6ab5daa5749a432734240cf3"
+  },
+  {
+    "seed": 16,
+    "mode": "canopy",
+    "tick": 5000,
+    "hash": "e5e6fd7d7cbbd00670fc5b25877d977f2f652a70e141a90bf4a7dd7187e6c276"
+  },
+  {
+    "seed": 16,
+    "mode": "column",
+    "tick": 1500,
+    "hash": "53f68410e1ff2a2b6753d9c84fa9550f3cfcf896d9ca1c4853857dc60dacf7e7"
+  },
+  {
+    "seed": 16,
+    "mode": "column",
+    "tick": 5000,
+    "hash": "c2c0619f6ced9b0a3e6390dc792fafcb5cc00feba054699a345d8ec77f6be5ec"
+  }
+]
