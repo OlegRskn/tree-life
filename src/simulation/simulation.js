@@ -26,8 +26,10 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   const state = { config, shadowMode: "canopy" };
   let population;
   let spatial;
+  let archiveChanges;
 
   function reset() {
+    archiveChanges = new Set();
     random = suppliedRandom ?? (seed === undefined ? Math.random : createRandom(seed));
     population = createPopulation();
     spatial = createSpatial(config);
@@ -177,6 +179,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       }
     }
     plant.cells = []; // Release cells while retaining metadata and DNA.
+    archiveChanges.add(plant);
   }
 
   function collectEnergy(plant) {
@@ -290,7 +293,8 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     // Cache the genome group signature; DNA is fixed for life.
     plant.speciesHash = speciesHash(plant.dna);
 
-    population.register(plant);
+    population.register(plant, parents);
+    archiveChanges.add(plant);
     spatial.occupy(plant.cells[0], state.shadowMode);
     return plant;
   }
@@ -325,5 +329,17 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   }
 
   reset();
-  return { state, step, reset, plantSavedGenome, plantAt, toggleShadowMode };
+  // The caller acknowledges only after durable storage succeeds. Standalone
+  // simulations retain their full registry for diagnostics and replay tests.
+  function pendingArchiveChanges() { return [...archiveChanges]; }
+  function acknowledgeArchiveChanges(plants) {
+    for (const plant of plants) {
+      archiveChanges.delete(plant);
+      if (!plant.alive && state.plantsById.get(plant.id) === plant) {
+        state.plantsById.delete(plant.id);
+      }
+    }
+  }
+  return { state, step, reset, plantSavedGenome, plantAt, toggleShadowMode,
+    pendingArchiveChanges, acknowledgeArchiveChanges };
 }
