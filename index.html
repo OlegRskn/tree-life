@@ -9,6 +9,15 @@
     <div id="app">
       <canvas id="world" width="800" height="400"></canvas>
       <div id="info-panel">
+        <div id="archive-section">
+          <div class="dna-title">History</div>
+          <div id="archive-status" role="status">Opening history...</div>
+          <button id="archive-retry">Retry</button>
+          <label>Run <input id="archive-run" type="number" min="1" placeholder="Current" /></label>
+          <label>Plant ID <input id="archive-plant" type="number" min="1" value="1" /></label>
+          <button id="archive-open">Open record</button>
+          <div id="archive-message" role="status"></div>
+        </div>
         <div id="info-empty">Click a plant</div>
         <div id="info-content" style="display: none">
           <div class="info-row">
