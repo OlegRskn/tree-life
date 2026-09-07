@@ -20,6 +20,29 @@ shadow rules. The corresponding keys on a Russian keyboard layout also work.
 Click a plant to inspect it; links in its card navigate to parents and children.
 Genomes are saved in localStorage for the current browser origin.
 
+### Persistent history
+
+History uses IndexedDB in the current browser and origin. The status shows the
+current run number. Enter a run number and plant ID in **History**, then click
+**Open record**. A blank run field means the current run. Parent/child links
+load records on demand; saved genomes remain a separate library.
+
+Each launch or R reset creates a new numbered run. Earlier records remain
+available after a page reload. Birth records preserve DNA and parent IDs; death
+records add final age, death time, and cause. Children are queried through a
+parent index, so offspring born after a parent's death remain discoverable.
+If a previous run ended while a plant was alive, its record is labelled as a
+birth snapshot with an unknown final state. This archive cannot resume a world
+and does not preserve cell shapes or every intermediate energy/age value.
+
+The app waits for a changed batch to commit before advancing another step.
+On write failure it pauses, retains uncommitted records, and offers **Retry**.
+A successful retry resumes if playback was running. Closing the page during
+an unfinished write can lose that pending batch. Browser storage is finite;
+clearing site data removes history. Use the same origin (including port) to
+access an existing archive. Run management, export/import, and world snapshots
+are deferred to later iterations.
+
 ## Tests
 
 ```sh
@@ -37,9 +60,19 @@ Tests use the built-in `node:test` runner and cover:
 - immediate shadow removal, photosynthesis/germination after a neighbour dies
   in the same step, and independent map reconstruction in runs up to 5000 ticks;
 - compatibility with the genome library format and propagation of storage errors;
-- integration of the real `main.js`, model, renderer, and UI with stubbed DOM,
+- integration of the real `src/app.js`, model, renderer, and UI with stubbed DOM,
   storage, and frame scheduling: selection, pause, toggles, saving, planting,
   deletion, and restart without duplicating the frame loop.
+- archive eviction, failed-write retry, run isolation, late offspring, and
+  unchanged worlds after 5000 ticks;
+- asynchronous lineage selection, stale-read cancellation, and read errors.
+
+For native IndexedDB checks, run `npm start` and open
+http://127.0.0.1:8080/tests/archive-browser.html. The page must report **PASS**
+after its automatic reload. It tests atomic aborts, late children, run isolation,
+missing records, close/reopen, and reload persistence in a disposable test database.
+These browser checks are separate from the Node suite and must also be run when
+changing the IndexedDB adapter.
 
 ### GitHub Actions
 
@@ -83,7 +116,8 @@ planting/deletion, and resizing.
 
 | Component | Responsibility |
 |---|---|
-| `main.js` | Connects components and schedules frames |
+| `main.js` | Starts the browser application |
+| `src/app.js` | Connects components, serializes archive writes and schedules frames |
 | `src/simulation/simulation.js` | Owns state and advances the model |
 | `src/simulation/population.js` | Active population and lineage registry |
 | `src/simulation/spatial.js` | Cell occupancy and shadow updates |
@@ -94,6 +128,7 @@ planting/deletion, and resizing.
 | `src/rendering/config.js` | Display settings |
 | `src/ui/ui.js` | Plant inspector, keyboard, selection, and genome library |
 | `src/persistence/genomes.js` | Reads/writes genomes through supplied storage |
+| `src/persistence/archive.js` | IndexedDB records, indexed lineage queries and archive acknowledgements |
 
 The model never accesses the DOM, Canvas, localStorage, or requestAnimationFrame.
 The renderer reads state; the UI invokes model operations. Camera, labels, and
@@ -134,13 +169,23 @@ old selection when resetting.
 Between steps, `state.plants` contains only living plants. After processing plants,
 the array is compacted in place while preserving order; seeds then germinate.
 This prevents neighbours from being skipped when multiple plants die in one step.
-`state.plantsById` contains every plant: living plants and archived dead records
-with empty `cells`. References held by selection and seed parents remain valid.
+In a standalone model, `state.plantsById` contains every plant, including dead
+records with empty `cells`. The browser app removes dead entries only after a
+successful archive transaction. References held by selection and seed parents remain valid.
 Age and energy stop changing after death; the children list may still grow.
 
 Model steps, metrics, and normal rendering traverse the active population rather
 than the entire history. Selected lineage views still traverse related records.
-The metadata/DNA archive has no memory bound yet; retention is a separate task.
+The browser keeps living records, pending changes, seed parent references, and
+the selected card in memory. Archived bodies/DNA are loaded on demand without
+a growing record cache. Highlight traversal temporarily holds visited IDs and
+can still be expensive for a large lineage. Disk history has no retention limit.
+
+The archive boundary uses `pendingArchiveChanges()` and
+`acknowledgeArchiveChanges(records)`. Do not advance or reset the model between
+reading a batch and acknowledging it; the application serializes these operations.
+Only acknowledge successful transactions. Standalone diagnostics can omit this
+boundary and keep the full registry for reference-state comparisons.
 
 `spatial.beginStep()` reconstructs maps at the start of each step. New cells occupy
 space immediately, and new shadow sources immediately affect cells below them.

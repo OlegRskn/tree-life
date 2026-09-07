@@ -1,14 +1,14 @@
-// Active bodies and the lineage registry have different lifetimes. Dead entries
-// remain in byId (with cells released by the simulation), including their DNA.
+// Dead entries remain until the application acknowledges durable archival.
+// Seeds retain parent references for generation calculation and late offspring.
 export function createPopulation() {
   const active = [];
   const byId = new Map();
 
-  function register(plant) {
+  function register(plant, parents = plant.parents.map(id => byId.get(id))) {
     byId.set(plant.id, plant);
     active.push(plant);
-    for (const id of plant.parents) {
-      byId.get(id).children.push(plant.id);
+    for (const parent of parents) {
+      parent.children.push(plant.id);
     }
   }
 

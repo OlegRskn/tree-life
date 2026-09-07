@@ -1,13 +1,73 @@
 export function createUI({ document, window, canvas, simulation, viewState, store,
-  redraw, toggleRunning, restart }) {
+  redraw, toggleRunning, restart, archive, plantGenome = dna => simulation.plantSavedGenome(dna) }) {
+  let selectionVersion = 0;
+  let selectedRun;
+  let selectedChildren;
+  let selectionTarget;
+  const archiveMessage = document.getElementById("archive-message");
+  function clearArchiveSelection() {
+    selectionVersion++;
+    selectedRun = undefined;
+    selectedChildren = undefined;
+    selectionTarget = undefined;
+    viewState.selectedPlant = null;
+    if (archive) viewState.lineageHighlights = [];
+    if (archiveMessage) archiveMessage.textContent = "";
+  }
+  async function selectArchived(id, runId = archive.runId) {
+    const version = ++selectionVersion;
+    selectionTarget = { id, runId };
+    selectedRun = runId;
+    viewState.lineageHighlights = [];
+    viewState.selectedPlant = null;
+    archiveMessage.textContent = "Loading history...";
+    redraw();
+    try {
+      const plant = await archive.get(id, runId);
+      if (version !== selectionVersion) return;
+      if (!plant) { archiveMessage.textContent = "No record for this run and plant ID."; return; }
+      // Live records must retain identity so their card follows growth and death.
+      viewState.selectedPlant = runId === archive.runId
+        ? simulation.state.plantsById.get(id) ?? plant : plant;
+      selectedChildren = plant.children;
+      archiveMessage.textContent = `Run ${runId}${plant.alive && runId !== archive.runId ? " - alive at last recorded birth; final state unknown" : ""}`;
+      redraw();
+      if (runId !== archive.runId) return;
+      // Load lineage only on selection/topology changes, never during rendering.
+      // Records are discarded after traversal; the selected card is the cache.
+      const queue = [...plant.children];
+      const seen = new Set();
+      const highlights = [];
+      while (queue.length && version === selectionVersion) {
+        const childId = queue.pop();
+        if (seen.has(childId)) continue;
+        seen.add(childId);
+        const child = await archive.get(childId, runId);
+        if (!child) continue;
+        const live = simulation.state.plantsById.get(childId);
+        if (live?.alive) highlights.push(live);
+        queue.push(...child.children);
+      }
+      if (version === selectionVersion) { viewState.lineageHighlights = highlights; redraw(); }
+    } catch (error) {
+      if (version === selectionVersion) archiveMessage.textContent = `Cannot read history: ${error.message}. Try opening the record again.`;
+    }
+  }
+  function refreshArchiveSelection() {
+    if (archive && (viewState.selectedPlant || selectionTarget)) {
+      return selectArchived(viewState.selectedPlant?.id ?? selectionTarget.id,
+        selectionTarget?.runId ?? selectedRun ?? archive.runId);
+    }
+  }
   function makeLineageLink(plant) {
     const link = document.createElement("span");
     link.className = "lineage-link" + (plant.alive ? "" : " dead");
     link.textContent = `#${plant.id}`;
-    link.title = plant.alive
+    link.title = archive ? `Open plant #${plant.id}` : plant.alive
       ? `gen ${plant.generation}, tick ${plant.bornAt}`
       : `gen ${plant.generation}, tick ${plant.bornAt} – ${plant.diedAt}`;
     link.addEventListener("click", () => {
+      if (archive) return selectArchived(plant.id, selectedRun ?? archive.runId);
       viewState.selectedPlant = plant;
       redraw();
     });
@@ -40,7 +100,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     document.getElementById("info-energy").textContent = p.alive ? p.energy : "—";
     document.getElementById("info-age").textContent = p.alive
       ? `${p.age} / ${p.maxAge}`
-      : `${p.maxAge} (${p.causeOfDeath === "starvation" ? "starvation" : "old age"})`;
+      : `${p.age} (${p.causeOfDeath === "starvation" ? "starvation" : "old age"})`;
     document.getElementById("info-cells").textContent = p.alive
       ? p.cells.length
       : "—";
@@ -50,7 +110,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     parentsEl.className = "lineage-list";
     parentsEl.innerHTML = "";
     for (const pid of p.parents) {
-      const parent = simulation.state.plantsById.get(pid);
+      const parent = archive ? { id: pid, alive: false } : simulation.state.plantsById.get(pid);
       if (parent) parentsEl.appendChild(makeLineageLink(parent));
     }
 
@@ -58,8 +118,8 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     const childrenEl = document.getElementById("info-children");
     childrenEl.className = "lineage-list";
     childrenEl.innerHTML = "";
-    for (const id of p.children) {
-      const child = simulation.state.plantsById.get(id);
+    for (const id of selectedChildren ?? p.children) {
+      const child = archive ? { id, alive: selectedRun === archive.runId && simulation.state.plantsById.get(id)?.alive } : simulation.state.plantsById.get(id);
       if (child) childrenEl.appendChild(makeLineageLink(child));
     }
 
@@ -149,7 +209,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
       const plantBtn = document.createElement("button");
       plantBtn.className = "genome-btn";
       plantBtn.textContent = "Plant";
-      plantBtn.addEventListener("click", () => simulation.plantSavedGenome(dna));
+      plantBtn.addEventListener("click", () => plantGenome(dna));
 
       const delBtn = document.createElement("button");
       delBtn.className = "genome-btn";
@@ -170,6 +230,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
   }
 
   document.addEventListener("keydown", (event) => {
+    if (["INPUT", "SELECT", "TEXTAREA"].includes(event.target?.tagName)) return;
     const key = event.key.toLowerCase();
     if (key === " ") {
       event.preventDefault();
@@ -185,9 +246,9 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
       redraw();
     }
     if (key === "r" || key === "\u043a") {
-      viewState.selectedPlant = null;
-      restart();
+      clearArchiveSelection();
       renderGenomeList();
+      return restart();
     }
   });
 
@@ -195,8 +256,10 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     const rect = canvas.getBoundingClientRect();
     const x = Math.floor((event.clientX - rect.left) / (rect.width / canvas.width) / viewState.cellSize);
     const y = Math.floor((event.clientY - rect.top) / (rect.height / canvas.height) / viewState.cellSize);
+    clearArchiveSelection();
     viewState.selectedPlant = simulation.plantAt(x, y);
     redraw();
+    return refreshArchiveSelection();
   });
 
   document.getElementById("btn-save-genome").addEventListener("click", () => {
@@ -209,7 +272,16 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
   });
 
   window.addEventListener("resize", fitToViewport);
+  if (archive) document.getElementById("archive-open").addEventListener("click", () => {
+    const run = Number(document.getElementById("archive-run").value || archive.runId);
+    const id = Number(document.getElementById("archive-plant").value);
+    if (!Number.isSafeInteger(run) || run < 1 || !Number.isSafeInteger(id) || id < 1) {
+      archiveMessage.textContent = "Enter positive whole numbers for run and plant ID.";
+      return;
+    }
+    return selectArchived(id, run);
+  });
   fitToViewport();
   renderGenomeList();
-  return { drawPlantInfo };
+  return { drawPlantInfo, refreshArchiveSelection, clearArchiveSelection };
 }

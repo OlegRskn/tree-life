@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createRandom } from "../src/simulation/random.js";
+import { createApp } from "../src/app.js";
+import { memoryArchive } from "./helpers/archive-store.js";
 
 // Minimal browser boundary: execute the real entry point, renderer and UI with
 // deterministic frames. Real browser layout is checked separately.
@@ -39,14 +41,15 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
   try {
     Object.assign(globalThis, globals);
     Math.random = createRandom(16);
-    await import("../main.js");
+    const archiveStore = memoryArchive();
+    const app = await createApp({ openStore: async () => archiveStore });
     const element = id => doc.getElementById(id);
     const key = key => doc.listeners.keydown({ key, preventDefault() {} });
-    const frame = () => { drawnText.length = 0; frames.shift()(); };
-    frame();
+    const frame = async () => { drawnText.length = 0; await frames.shift()(); };
+    await frame();
     assert.ok(drawnText.includes("tick: 1"));
     assert.equal(frames.length, 1);
-    element("world").listeners.click({ clientX: 2410, clientY: 1690 });
+    await element("world").listeners.click({ clientX: 2410, clientY: 1690 });
     assert.equal(element("info-id").textContent, "#1");
     assert.equal(element("btn-save-genome").disabled, false);
     assert.equal(element("info-dna").children.length, 17);
@@ -54,7 +57,7 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
     assert.match(element("genome-list").innerHTML, /No saved genomes/);
 
     key(" ");
-    frame();
+    await frame();
     assert.equal(frames.length, 0);
     key("L");
     assert.ok(drawnText.includes("labels: gene"));
@@ -70,21 +73,33 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
     assert.ok(JSON.parse(data.get("genomes"))["test-genome"]);
     const actions = element("genome-list").children[0].children[1];
     assert.equal(actions.children[0].textContent, "Plant");
-    actions.children[0].listeners.click();
+    await actions.children[0].listeners.click();
     key("l");
     assert.ok(drawnText.includes("plants: 2"));
     actions.children[1].listeners.click();
     assert.deepEqual(JSON.parse(data.get("genomes")), {});
 
-    key("\u043a");
+    await key("\u043a");
     assert.equal(element("info-content").style.display, "none");
     assert.equal(element("btn-save-genome").disabled, true);
     assert.equal(frames.length, 1);
-    frame();
+    await frame();
     assert.ok(drawnText.includes("tick: 1"));
     assert.ok(drawnText.includes("plants: 1"));
-    key("R");
+    await key("R");
     assert.equal(frames.length, 1, "restart must not create a second frame loop");
+
+    archiveStore.fail = true;
+    app.simulation.plantSavedGenome(app.simulation.state.plants[0].dna);
+    const tickBeforeFailure = app.simulation.state.tickCount;
+    await frame();
+    assert.match(element("archive-status").textContent, /not saved.*paused/);
+    assert.equal(frames.length, 0, "storage failure stops the frame loop");
+    assert.equal(app.simulation.state.tickCount, tickBeforeFailure);
+    archiveStore.fail = false;
+    await element("archive-retry").listeners.click();
+    assert.match(element("archive-status").textContent, /History saved/);
+    assert.equal(frames.length, 1, "retry restarts only one frame loop");
   } finally {
     Math.random = originalRandom;
     for (const [key, descriptor] of Object.entries(original)) {

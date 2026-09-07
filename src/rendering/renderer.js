@@ -19,6 +19,12 @@ export function createRenderer(canvas, simulation, viewState) {
 
   function drawLineageHighlights() {
     if (!viewState.selectedPlant) return;
+    if (viewState.lineageHighlights) {
+      for (const plant of viewState.lineageHighlights) {
+        if (plant.alive) drawPlantOutline(plant, "rgba(100, 220, 100, 0.7)", 2);
+      }
+      return;
+    }
 
     for (const p of collectAncestors(viewState.selectedPlant)) {
       if (p.alive) drawPlantOutline(p, "rgba(100, 150, 255, 0.7)", 2);
@@ -203,7 +209,7 @@ export function createRenderer(canvas, simulation, viewState) {
     line(`seeds: ${state.seeds.length}`);
     line(`gen max: ${maxGen}`);
     line(`gen avg: ${avgGen}`);
-    line(`total ever: ${state.plantsById.size}`);
+    line(`total ever: ${state.nextPlantId - 1}`);
     line(`died old: ${state.deathCounts.age}`);
     line(`died hungry: ${state.deathCounts.starvation}`);
     line(`species: ${speciesCounts.size}`);

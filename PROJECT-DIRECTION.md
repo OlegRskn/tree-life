@@ -153,7 +153,9 @@ Following the user's request, `ci/automated-tests` adds GitHub Actions: `npm tes
 
 CI passed for dc9bc7381b69d697e75e952f93177f3b729e8959:
 https://github.com/OlegRskn/tree-life/actions/runs/33996412736.
-PR #1 is ready for review; it has not been merged into main.
+PR #1 and the English-content PR #2 were subsequently merged at the user's
+instruction. Local and remote completed branches were deleted after confirming
+that their commits were included in main (a9087c1).
 
 ### English repository content
 
@@ -164,3 +166,39 @@ and interface text. Keyboard aliases for the Russian layout remain supported.
 Acceptance: no remaining Cyrillic prose in tracked text, unchanged simulation
 checkpoints, tests passing locally and on GitHub, and English UI verified in a browser.
 Existing untracked local files are outside this translation and are not published.
+
+### Persistent lineage archive: iteration 1
+
+2026-09-06, branch `feature/persistent-lineage-archive`. The user chose persistent
+history instead of deleting old records and approved the first implementation
+iteration. Outcome: store history in IndexedDB, evict acknowledged dead records
+from the browser's model registry, and load lineage cards on demand.
+
+Acceptance criteria:
+
+- Birth/death records and DNA survive page reload; run IDs isolate resets.
+- Late offspring remain linked after a dead parent has left memory.
+- A failed transaction retains pending records, pauses stepping, and supports retry.
+- Selection changes and resets cancel stale asynchronous card updates.
+- Simulation results and existing reference checkpoints remain unchanged.
+
+Implementation uses a parent index instead of rewriting archived parent records.
+The model does not access IndexedDB. The app serializes writes and model changes,
+with no external dependencies. A minimal run/plant ID lookup makes previous
+history accessible; a run list, storage management, deletion, export/import,
+and full-world resume belong to later iterations.
+
+Validation: 40 Node tests pass, including a 5000-tick comparison with archival
+enabled, complete late-child relationships, write failure/retry, and asynchronous
+UI behavior. Native IndexedDB tests pass for atomic abort, isolation, missing
+records, reopening, and page reload. Browser inspection verified a live card,
+its transition to death, and reopening that dead record from an earlier run
+after reload; no console errors were observed.
+
+Limitations: birth records of plants still alive when a page closes have an
+unknown final state; a pending write can be lost on abrupt closure. History is
+local to one browser origin and has no disk retention limit. Seeds retain parent
+objects while needed. Lineage highlighting traverses records asynchronously
+and temporarily holds visited IDs; very large lineages may be slow. The existing
+whole-app scaling still makes the panel small. Readable panels/camera controls
+remain a separate UI iteration. No cell-shape history or world resume is added.
