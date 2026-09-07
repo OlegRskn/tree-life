@@ -2,13 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Tree Life</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="app">
-      <canvas id="world" width="800" height="400"></canvas>
-      <div id="info-panel">
+      <div id="world-stage">
+        <canvas id="world" width="800" height="400" aria-label="Simulation world"></canvas>
+      </div>
+      <div id="info-panel" role="region" aria-label="Plant inspector" tabindex="0">
         <div id="archive-section">
           <div class="dna-title">History</div>
           <div id="archive-status" role="status">Opening history...</div>

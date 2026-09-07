@@ -169,20 +169,6 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     });
   }
 
-  function fitToViewport() {
-    const app = document.getElementById("app");
-    // Reset the transform to measure the unscaled size.
-    app.style.transform = "translate(-50%, -50%)";
-    const appW = app.offsetWidth;
-    const appH = app.offsetHeight;
-    const scale = Math.min(
-      window.innerWidth / appW,
-      window.innerHeight / appH,
-      1,
-    );
-    app.style.transform = `translate(-50%, -50%) scale(${scale})`;
-  }
-
   function renderGenomeList() {
     const list = document.getElementById("genome-list");
     if (!list) return;
@@ -271,7 +257,6 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     }
   });
 
-  window.addEventListener("resize", fitToViewport);
   if (archive) document.getElementById("archive-open").addEventListener("click", () => {
     const run = Number(document.getElementById("archive-run").value || archive.runId);
     const id = Number(document.getElementById("archive-plant").value);
@@ -281,7 +266,6 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     }
     return selectArchived(id, run);
   });
-  fitToViewport();
   renderGenomeList();
   return { drawPlantInfo, refreshArchiveSelection, clearArchiveSelection };
 }
