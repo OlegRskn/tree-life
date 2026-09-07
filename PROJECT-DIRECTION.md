@@ -202,3 +202,21 @@ objects while needed. Lineage highlighting traverses records asynchronously
 and temporarily holds visited IDs; very large lineages may be slow. The existing
 whole-app scaling still makes the panel small. Readable panels/camera controls
 remain a separate UI iteration. No cell-shape history or world resume is added.
+
+### Readable inspector
+
+2026-09-07: the user approved merging archive PR #3 and proceeding with the
+readable panel. PR #3 was merged after successful CI (main: 07ff13d).
+Branch `feature/readable-inspector` removes whole-app scaling. The world fits
+its own area while the inspector retains a 14px base font and independent
+scrolling. At 720px or narrower the panel moves below the world with page scrolling.
+Form controls inherit the panel font, and muted DNA/lineage labels have improved
+contrast. No simulation rules, camera controls, or archive format changes are included.
+
+Acceptance: readable text independent of world scale; no horizontal overflow;
+long cards remain reachable; Canvas aspect ratio and plant selection stay correct.
+Validation: 40 Node tests pass, including selection at resized/offset Canvas
+bounds. The persistent browser layout test passes at 1280x720, 1000x320, 720x720,
+390x844, and 320x640. Live browser inspection covers historical card opening and
+panel scrolling. Canvas HUD text still scales with the world; a separate HUD
+and camera navigation remain future work.

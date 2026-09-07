@@ -17,7 +17,7 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
     addEventListener(type, fn) { this.listeners[type] = fn; }
     appendChild(child) { this.children.push(child); }
     getContext() { return context; }
-    getBoundingClientRect() { return { left: 0, top: 0, width: this.width, height: this.height }; }
+    getBoundingClientRect() { return this.bounds ?? { left: 0, top: 0, width: this.width, height: this.height }; }
     get offsetWidth() { return 5040; }
     get offsetHeight() { return 1800; }
   }
@@ -55,6 +55,18 @@ test("app integration: frames, selection, labels, shadow, save, sow, delete and 
     assert.equal(element("info-dna").children.length, 17);
     assert.match(element("info-born").textContent, /^tick /);
     assert.match(element("genome-list").innerHTML, /No saved genomes/);
+
+    for (const bounds of [
+      { left: 100, top: 50, width: 960, height: 360 },
+      { left: 12, top: 16, width: 300, height: 112.5 },
+    ]) {
+      element("world").bounds = bounds;
+      await element("world").listeners.click({
+        clientX: bounds.left + 120.5 / 240 * bounds.width,
+        clientY: bounds.top + 84.5 / 90 * bounds.height,
+      });
+      assert.equal(element("info-id").textContent, "#1", "selection survives resizing and canvas offsets");
+    }
 
     key(" ");
     await frame();

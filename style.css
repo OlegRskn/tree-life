@@ -6,40 +6,67 @@ body {
   margin: 0;
   background: #222;
   overflow: hidden;
-  width: 100vw;
-  height: 100vh;
-  position: relative;
   font-family: monospace;
   color: #eee;
 }
 
 #app {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 16px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: center center;
+  padding: 16px;
+  height: 100vh;
+  height: 100dvh;
+}
+
+#world-stage {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 canvas {
-  border: 1px solid #444;
+  display: block;
+  outline: 1px solid #444;
   image-rendering: pixelated;
-  flex-shrink: 0;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 #info-panel {
-  width: 220px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   background: #1a1a1a;
   border: 1px solid #444;
   border-radius: 6px;
   padding: 12px;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  body { overflow: auto; }
+  #app {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    align-content: start;
+    padding: 12px;
+  }
+  #world-stage { padding: 1px; }
+  canvas { width: 100%; height: auto; max-height: none; }
+  #info-panel { overflow: visible; }
 }
 
 #info-empty {
-  color: #666;
+  color: #aaa;
   text-align: center;
   padding: 20px 0;
 }
@@ -74,7 +101,7 @@ canvas {
 }
 
 .gene-index {
-  color: #555;
+  color: #999;
   width: 20px;
   text-align: right;
   flex-shrink: 0;
@@ -91,7 +118,7 @@ canvas {
   padding: 1px 0;
   border-radius: 3px;
   background: #2a2a2a;
-  color: #666;
+  color: #aaa;
 }
 
 .gene-val.active {
@@ -105,8 +132,8 @@ canvas {
 
 .gene-dir-label {
   background: transparent;
-  color: #555;
-  font-size: 11px;
+  color: #aaa;
+  font-size: 13px;
 }
 
 /* Lineage */
@@ -146,7 +173,7 @@ canvas {
 }
 
 .lineage-link.dead {
-  color: #666;
+  color: #aab4c0;
 }
 
 /* Genomes */
@@ -220,3 +247,15 @@ canvas {
 #archive-section label { display: block; margin: 5px 0; }
 #archive-section input { width: 75px; }
 #archive-status, #archive-message { overflow-wrap: anywhere; font-size: 12px; margin: 6px 0; }
+
+#info-panel button, #info-panel input {
+  font: inherit;
+  min-height: 32px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #eee;
+  padding: 4px 8px;
+}
+
+#info-panel :focus-visible { outline: 2px solid #9bd5ff; outline-offset: 2px; }

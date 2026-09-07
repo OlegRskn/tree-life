@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Inspector layout tests</title>
+<body><h1>Inspector layout tests</h1><pre id="result">Running...</pre>
+<script type="module">
+const output = document.getElementById("result");
+try {
+  // Use the real HTML/CSS without starting a world or writing user history.
+  const html = (await (await fetch("../index.html")).text())
+    .replace('<link rel="stylesheet" href="style.css" />', '<link rel="stylesheet" href="../style.css" />')
+    .replace('<script src="main.js" type="module"><' + '/script>', '');
+  const results = [];
+  for (const [width, height] of [[1280, 720], [1000, 320], [720, 720], [390, 844], [320, 640]]) {
+    const frame = document.createElement("iframe");
+    frame.style.width = `${width}px`; frame.style.height = `${height}px`;
+    const loaded = new Promise(resolve => { frame.onload = resolve; });
+    frame.srcdoc = html; document.body.appendChild(frame); await loaded;
+    const doc = frame.contentDocument;
+    const canvas = doc.getElementById("world"); canvas.width = 4800; canvas.height = 1800;
+    doc.getElementById("info-content").style.display = "block";
+    doc.getElementById("info-dna").textContent = "DNA record ".repeat(200);
+    doc.getElementById("archive-message").textContent = "LongHistoryMessage".repeat(30);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const panel = doc.getElementById("info-panel");
+    const p = panel.getBoundingClientRect(); const c = canvas.getBoundingClientRect();
+    const check = (ok, message) => { if (!ok) throw new Error(`${width}x${height}: ${message}`); };
+    check(doc.documentElement.scrollWidth <= width, "horizontal page overflow");
+    check(panel.scrollWidth <= panel.clientWidth, "horizontal panel overflow");
+    check(parseFloat(frame.contentWindow.getComputedStyle(panel).fontSize) >= 14, "panel text shrunk");
+    check(Math.abs(c.width / c.height - 8 / 3) < 0.01, "canvas aspect ratio changed");
+    if (width > 720) {
+      check(p.left >= c.right, "panel overlaps world");
+      check(p.bottom <= height && c.bottom <= height, "content exceeds viewport");
+      panel.scrollTop = panel.scrollHeight;
+      check(panel.scrollTop > 0, "long card cannot scroll");
+    } else {
+      check(p.top >= c.bottom, "mobile panel is not below world");
+      check(doc.documentElement.scrollHeight > height, "long mobile page cannot scroll");
+    }
+    results.push(`PASS ${width}x${height}`); frame.remove();
+  }
+  output.textContent = results.join("\n");
+} catch (error) { output.textContent = `FAIL: ${error.stack}`; }
+</script></body></html>

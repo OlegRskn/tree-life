@@ -20,6 +20,11 @@ shadow rules. The corresponding keys on a Russian keyboard layout also work.
 Click a plant to inspect it; links in its card navigate to parents and children.
 Genomes are saved in localStorage for the current browser origin.
 
+The inspector keeps its text size independently of the world. On wider screens
+it occupies a scrollable sidebar; at widths of 720 CSS pixels or less it sits
+below the world and the page scrolls. Canvas keeps its proportions and fits the
+available space. Zooming and panning the world are not implemented yet.
+
 ### Persistent history
 
 History uses IndexedDB in the current browser and origin. The status shows the
@@ -73,6 +78,13 @@ after its automatic reload. It tests atomic aborts, late children, run isolation
 missing records, close/reopen, and reload persistence in a disposable test database.
 These browser checks are separate from the Node suite and must also be run when
 changing the IndexedDB adapter.
+
+Open http://127.0.0.1:8080/tests/layout-browser.html for layout checks at five
+viewport sizes, including narrow and short screens. Each size must report PASS:
+readable base text, proportional Canvas sizing, no horizontal overflow, and
+accessible long cards through scrolling. Node integration tests also verify
+selection at different Canvas sizes and offsets. Browser checks are run separately
+from CI, which runs the Node suite.
 
 ### GitHub Actions
 
