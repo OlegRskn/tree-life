@@ -414,8 +414,8 @@ mobile layout, then agree on implementation iterations. Code remains unchanged.
 
 2026-09-08: the user authorized implementation of the agreed plan and deferred
 a separate investigation of previously noticed bugs. Branch
-`feature/observatory-observe` builds on unmerged readable-inspector PR #4;
-neither PR #4 nor this iteration may be merged without a new merge instruction.
+`feature/observatory-observe` builds on readable-inspector PR #4, already merged
+on GitHub as `df2a8bb`. This iteration requires an explicit merge instruction.
 
 Scope: observatory Observe shell and Overview, paused founder close-up, explicit
 play/pause/step and 1x/4x/16x controls, pointer-anchored zoom/pan, fit/focus,
@@ -446,7 +446,8 @@ reset, and death/waiting/ended states. Native browser layout checks pass at
 1280x720, 1000x320, 720x720, 390x844, and 320x640. Browser interaction checks cover
 selection, Step, fit/focus, playback through death, inline genome save, planting
 from Herbarium, confirmed reset, and reopening a record from the previous run.
-GitHub Actions must pass on the pushed commit before this iteration can merge.
+GitHub Actions passed for implementation commit `7dfee5f` (run 34201923927).
+The open review is PR #5; subsequent commits also require successful checks.
 
 Limits: speeds are targets subject to rendering/storage throughput; touch uses
 dragging and zoom buttons (no pinch gesture). Physical touch-device behavior and
