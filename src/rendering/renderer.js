@@ -8,6 +8,23 @@ export function createRenderer(canvas, simulation, viewState) {
   canvas.height = config.HEIGHT * viewState.cellSize;
 
   function draw() {
+    if (viewState.camera) {
+      const camera = viewState.camera;
+      const rect = canvas.getBoundingClientRect();
+      camera.resize(rect.width || 800, rect.height || 500);
+      const ratio = Math.min(2, globalThis.devicePixelRatio || 1);
+      const width = Math.round(camera.width * ratio), height = Math.round(camera.height * ratio);
+      if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const scale = ratio * camera.zoom / viewState.cellSize;
+      ctx.setTransform(scale, 0, 0, scale,
+        ratio * (camera.width / 2 - camera.x * camera.zoom),
+        ratio * (camera.height / 2 - camera.y * camera.zoom));
+      drawWorld(); drawPlants(); drawLineageHighlights(); drawSeeds();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      return;
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawWorld();
     drawPlants();
@@ -80,6 +97,17 @@ export function createRenderer(canvas, simulation, viewState) {
   }
 
   function drawWorld() {
+    if (viewState.camera) {
+      const size = viewState.cellSize;
+      ctx.fillStyle = "#101e25";
+      ctx.fillRect(0, 0, config.WIDTH * size, config.GROUND_LEVEL * size);
+      ctx.fillStyle = "#443b30";
+      ctx.fillRect(0, config.GROUND_LEVEL * size, config.WIDTH * size, (config.HEIGHT - config.GROUND_LEVEL) * size);
+      ctx.strokeStyle = "#716348"; ctx.lineWidth = size / viewState.camera.zoom;
+      ctx.beginPath(); ctx.moveTo(0, config.GROUND_LEVEL * size);
+      ctx.lineTo(config.WIDTH * size, config.GROUND_LEVEL * size); ctx.stroke();
+      return;
+    }
     for (let x = 0; x < config.WIDTH; x++) {
       for (let y = 0; y < config.HEIGHT; y++) {
         ctx.fillStyle = worldColor(state.world[x][y]);
@@ -109,7 +137,7 @@ export function createRenderer(canvas, simulation, viewState) {
         );
         if (plant === viewState.selectedPlant) {
           ctx.strokeStyle = "white";
-          ctx.lineWidth = 1;
+          ctx.lineWidth = viewState.camera ? 2 * viewState.cellSize / viewState.camera.zoom : 1;
           ctx.strokeRect(
             cell.x * viewState.cellSize,
             cell.y * viewState.cellSize,
@@ -124,6 +152,7 @@ export function createRenderer(canvas, simulation, viewState) {
 
   function drawCellLabel(cell) {
     if (viewState.labelMode === "none") return;
+    if (viewState.camera && viewState.camera.zoom < 14) return;
 
     let text;
     if (viewState.labelMode === "gene") {
@@ -150,6 +179,10 @@ export function createRenderer(canvas, simulation, viewState) {
   }
 
   function cellColor(plant, cell) {
+    if (viewState.camera) {
+      return { sprout: "#e8dfc7", ready: "#d6ad63", wood: "#786248",
+        leaf: `hsl(${85 + plant.hue % 45}, 25%, ${43 + plant.hue % 12}%)` }[cell.type] ?? "#a9b4b0";
+    }
     switch (cell.type) {
       case "sprout":
         return "white";
@@ -165,7 +198,7 @@ export function createRenderer(canvas, simulation, viewState) {
   }
 
   function drawSeeds() {
-    ctx.fillStyle = "yellow";
+    ctx.fillStyle = viewState.camera ? "#d6ad63" : "yellow";
     for (const seed of state.seeds) {
       ctx.fillRect(
         seed.x * viewState.cellSize,

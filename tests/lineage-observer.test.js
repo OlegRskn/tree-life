@@ -40,7 +40,7 @@ test("a selected dead ancestor remains inspectable and links to descendants", ()
   assert.equal(founder.alive, false);
   assert.ok(!simulation.state.plants.includes(founder));
   assert.equal(document.getElementById("info-id").textContent, "#1");
-  assert.match(document.getElementById("info-born").textContent, /–/);
+  assert.match(document.getElementById("death-details").textContent, /Died at tick/);
   assert.match(document.getElementById("info-born").textContent, /^tick /);
   assert.match(document.getElementById("info-age").textContent, /\((old age|starvation)\)/);
   assert.equal(document.getElementById("info-cells").textContent, "—");

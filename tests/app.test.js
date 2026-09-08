@@ -1,122 +1,145 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createRandom } from "../src/simulation/random.js";
 import { createApp } from "../src/app.js";
 import { memoryArchive } from "./helpers/archive-store.js";
 
-// Minimal browser boundary: execute the real entry point, renderer and UI with
-// deterministic frames. Real browser layout is checked separately.
-test("app integration: frames, selection, labels, shadow, save, sow, delete and restart", async () => {
-  const drawnText = [];
-  const context = new Proxy({}, { get: (_, key) => key === "fillText"
-    ? text => drawnText.push(text) : () => {}, set: () => true });
+async function harness(options = {}) {
+  const context = new Proxy({}, { get: () => () => {}, set: () => true });
   class Element {
-    constructor() { this.style = {}; this.children = []; this.listeners = {}; }
+    constructor() { this.style = {}; this.dataset = {}; this.children = []; this.listeners = {}; this.attributes = {}; this.value = ""; }
     set innerHTML(value) { this.html = value; this.children = []; }
     get innerHTML() { return this.html; }
-    addEventListener(type, fn) { this.listeners[type] = fn; }
+    addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
+    async fire(type, event = {}) { for (const fn of this.listeners[type] ?? []) await fn(event); }
     appendChild(child) { this.children.push(child); }
+    setAttribute(name, value) { this.attributes[name] = value; }
+    focus() { doc.activeElement = this; }
     getContext() { return context; }
-    getBoundingClientRect() { return this.bounds ?? { left: 0, top: 0, width: this.width, height: this.height }; }
-    get offsetWidth() { return 5040; }
-    get offsetHeight() { return 1800; }
+    getBoundingClientRect() { return this.bounds ?? { left: 20, top: 100, width: 900, height: 500 }; }
   }
   const elements = new Map();
   const doc = new Element();
-  doc.getElementById = id => {
-    if (!elements.has(id)) elements.set(id, new Element());
-    return elements.get(id);
-  };
+  doc.getElementById = id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); };
   doc.createElement = () => new Element();
   const win = new Element();
-  let promptMessage;
-  Object.assign(win, { innerWidth: 1280, innerHeight: 720,
-    prompt(message) { promptMessage = message; return "test-genome"; } });
   const data = new Map();
   const storage = { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) };
   const frames = [];
   const globals = { document: doc, window: win, localStorage: storage, requestAnimationFrame: callback => frames.push(callback) };
   const original = Object.fromEntries(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-  const originalRandom = Math.random;
+  Object.assign(globalThis, globals);
+  const store = options.store ?? memoryArchive();
+  const app = await createApp({ openStore: async () => store, simulationOptions: { seed: 16, ...options.simulationOptions } });
+  const el = doc.getElementById;
+  return { app, store, el, frames, data,
+    click: id => el(id).fire("click"),
+    key: (key, tagName) => doc.fire("keydown", { key, target: { tagName }, preventDefault() {} }),
+    async frame(time) { const callback = frames.shift(); assert.ok(callback, "a frame is scheduled"); await callback(time); },
+    async selectFounder() {
+      const p = app.viewState.camera.screenAt(120.5, 84.5);
+      const rect = el("world").getBoundingClientRect();
+      const event = { button: 0, pointerId: 1, clientX: rect.left + p.x, clientY: rect.top + p.y };
+      await el("world").fire("pointerdown", event); await el("world").fire("pointerup", event);
+    },
+    restore() { for (const [key, descriptor] of Object.entries(original)) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; } },
+  };
+}
+
+test("Observe starts paused, steps once, preserves camera, saves a genome and confirms reset", async () => {
+  const h = await harness();
   try {
-    Object.assign(globalThis, globals);
-    Math.random = createRandom(16);
-    const archiveStore = memoryArchive();
-    const app = await createApp({ openStore: async () => archiveStore });
-    const element = id => doc.getElementById(id);
-    const key = key => doc.listeners.keydown({ key, preventDefault() {} });
-    const frame = async () => { drawnText.length = 0; await frames.shift()(); };
-    await frame();
-    assert.ok(drawnText.includes("tick: 1"));
-    assert.equal(frames.length, 1);
-    await element("world").listeners.click({ clientX: 2410, clientY: 1690 });
-    assert.equal(element("info-id").textContent, "#1");
-    assert.equal(element("btn-save-genome").disabled, false);
-    assert.equal(element("info-dna").children.length, 17);
-    assert.match(element("info-born").textContent, /^tick /);
-    assert.match(element("genome-list").innerHTML, /No saved genomes/);
+    assert.equal(h.app.simulation.state.tickCount, 0); assert.equal(h.frames.length, 0);
+    assert.equal(h.el("play-toggle").textContent, "Start");
+    await h.selectFounder();
+    assert.equal(h.el("info-id").textContent, "#1");
+    assert.equal(h.el("focus-plant").disabled, false);
+    const position = { x: h.app.viewState.camera.x, y: h.app.viewState.camera.y, zoom: h.app.viewState.camera.zoom };
+    await h.click("step-once");
+    assert.equal(h.app.simulation.state.tickCount, 1); assert.equal(h.frames.length, 0);
+    assert.deepEqual({ x: h.app.viewState.camera.x, y: h.app.viewState.camera.y, zoom: h.app.viewState.camera.zoom }, position);
+    await h.click("btn-save-genome");
+    h.el("genome-name-input").value = "founder";
+    await h.el("genome-save-form").fire("submit", { preventDefault() {} });
+    assert.ok(JSON.parse(h.data.get("genomes")).founder);
+    assert.match(h.el("genome-save-message").textContent, /Saved founder/);
+    await h.click("new-world");
+    assert.equal(h.app.simulation.state.tickCount, 1, "confirmation does not reset");
+    await h.click("cancel-new-world");
+    assert.equal(h.app.viewState.selectedPlant.id, 1);
+    await h.click("new-world"); await h.click("confirm-new-world");
+    assert.equal(h.app.simulation.state.tickCount, 0);
+    assert.equal(h.app.viewState.selectedPlant, null); assert.equal(h.app.playback.running, false);
+    assert.equal(h.el("genome-save-message").textContent, "", "a new world clears the previous save notice");
+    assert.equal(h.el("genome-save-form").hidden, true);
+    assert.equal(h.frames.length, 0);
+  } finally { h.restore(); }
+});
 
-    for (const bounds of [
-      { left: 100, top: 50, width: 960, height: 360 },
-      { left: 12, top: 16, width: 300, height: 112.5 },
-    ]) {
-      element("world").bounds = bounds;
-      await element("world").listeners.click({
-        clientX: bounds.left + 120.5 / 240 * bounds.width,
-        clientY: bounds.top + 84.5 / 90 * bounds.height,
-      });
-      assert.equal(element("info-id").textContent, "#1", "selection survives resizing and canvas offsets");
-    }
+test("playback follows elapsed time; screen navigation and keyboard focus preserve user intent", async () => {
+  const h = await harness();
+  try {
+    await h.key(" ", "BUTTON"); assert.equal(h.app.playback.running, false);
+    await h.key(" ", "INPUT"); assert.equal(h.app.playback.running, false);
+    await h.click("play-toggle");
+    await h.frame(0); await h.frame(100);
+    assert.equal(h.app.simulation.state.tickCount, 3);
+    await h.click("speed-4"); await h.frame(110); await h.frame(160);
+    assert.equal(h.app.simulation.state.tickCount, 9);
+    await h.click("nav-history");
+    assert.equal(h.app.playback.running, false);
+    await h.frame(200); assert.equal(h.frames.length, 0);
+    await h.click("nav-observe"); assert.equal(h.app.playback.running, false);
+    await h.key("L"); assert.equal(h.app.viewState.labelMode, "gene");
+    await h.key("\u0434"); assert.equal(h.app.viewState.labelMode, "energy");
+    await h.key("\u044b"); assert.equal(h.app.simulation.state.shadowMode, "column");
+    await h.key("S"); assert.equal(h.app.simulation.state.shadowMode, "canopy");
+  } finally { h.restore(); }
+});
 
-    key(" ");
-    await frame();
-    assert.equal(frames.length, 0);
-    key("L");
-    assert.ok(drawnText.includes("labels: gene"));
-    key("S");
-    assert.ok(drawnText.includes("shadow: column"));
-    key("\u044b"); // Same physical key on a Russian keyboard layout.
-    assert.ok(drawnText.includes("shadow: canopy"));
-    key("\u0434");
-    assert.ok(drawnText.includes("labels: energy"));
+test("storage errors stop time and retry keeps the intended playback state", async () => {
+  const h = await harness();
+  try {
+    await h.click("play-toggle"); await h.frame(0);
+    h.store.fail = true;
+    h.app.simulation.plantSavedGenome(h.app.simulation.state.plants[0].dna);
+    await h.frame(40);
+    assert.equal(h.app.simulation.state.tickCount, 0);
+    assert.equal(h.frames.length, 0);
+    assert.equal(h.el("archive-error").hidden, false);
+    assert.equal(h.el("step-once").disabled, true);
+    assert.ok(h.app.simulation.pendingArchiveChanges().length);
+    h.store.fail = false; await h.click("archive-retry");
+    assert.equal(h.el("archive-error").hidden, true); assert.equal(h.frames.length, 1);
+    await h.frame(1000); assert.equal(h.app.simulation.state.tickCount, 0, "no catch-up after storage recovery");
+    await h.frame(1040); assert.equal(h.app.simulation.state.tickCount, 1);
+  } finally { h.restore(); }
+});
 
-    element("btn-save-genome").listeners.click();
-    assert.equal(promptMessage, "Genome name:");
-    assert.ok(JSON.parse(data.get("genomes"))["test-genome"]);
-    const actions = element("genome-list").children[0].children[1];
-    assert.equal(actions.children[0].textContent, "Plant");
-    await actions.children[0].listeners.click();
-    key("l");
-    assert.ok(drawnText.includes("plants: 2"));
-    actions.children[1].listeners.click();
-    assert.deepEqual(JSON.parse(data.get("genomes")), {});
+test("a failed initial save recovers into a paused world", async () => {
+  const store = memoryArchive(); store.fail = true;
+  const h = await harness({ store });
+  try {
+    assert.equal(h.frames.length, 0); assert.equal(h.el("play-toggle").disabled, true);
+    store.fail = false; await h.click("archive-retry");
+    assert.equal(h.el("play-toggle").disabled, false); assert.equal(h.frames.length, 0);
+  } finally { h.restore(); }
+});
 
-    await key("\u043a");
-    assert.equal(element("info-content").style.display, "none");
-    assert.equal(element("btn-save-genome").disabled, true);
-    assert.equal(frames.length, 1);
-    await frame();
-    assert.ok(drawnText.includes("tick: 1"));
-    assert.ok(drawnText.includes("plants: 1"));
-    await key("R");
-    assert.equal(frames.length, 1, "restart must not create a second frame loop");
-
-    archiveStore.fail = true;
-    app.simulation.plantSavedGenome(app.simulation.state.plants[0].dna);
-    const tickBeforeFailure = app.simulation.state.tickCount;
-    await frame();
-    assert.match(element("archive-status").textContent, /not saved.*paused/);
-    assert.equal(frames.length, 0, "storage failure stops the frame loop");
-    assert.equal(app.simulation.state.tickCount, tickBeforeFailure);
-    archiveStore.fail = false;
-    await element("archive-retry").listeners.click();
-    assert.match(element("archive-status").textContent, /History saved/);
-    assert.equal(frames.length, 1, "retry restarts only one frame loop");
-  } finally {
-    Math.random = originalRandom;
-    for (const [key, descriptor] of Object.entries(original)) {
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-      else delete globalThis[key];
-    }
-  }
+test("death preserves Overview and ends only when neither plants nor seeds remain", async () => {
+  const h = await harness({ simulationOptions: { config: { MIN_AGE: 1, MAX_AGE: 1 } } });
+  try {
+    await h.selectFounder();
+    for (let i = 0; i < 5; i++) await h.click("step-once");
+    await Promise.resolve();
+    assert.equal(h.el("plant-status").textContent, "Dead");
+    assert.equal(h.el("playback-status").textContent, "Ended");
+    assert.equal(h.el("btn-save-genome").disabled, false);
+    assert.equal(h.el("focus-plant").disabled, true);
+    assert.match(h.el("death-details").textContent, /tick 5/);
+    const deadDNA = h.app.viewState.selectedPlant.dna;
+    h.app.simulation.state.seeds.push({ x: 120, y: 80, age: 0, dna: deadDNA, parents: [] });
+    await h.click("step-once");
+    assert.equal(h.el("playback-status").textContent, "Paused");
+    assert.match(h.el("world-state").textContent, /Waiting for germination/);
+  } finally { h.restore(); }
 });

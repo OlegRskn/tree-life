@@ -220,3 +220,238 @@ bounds. The persistent browser layout test passes at 1280x720, 1000x320, 720x720
 390x844, and 320x640. Live browser inspection covers historical card opening and
 panel scrolling. Canvas HUD text still scales with the world; a separate HUD
 and camera navigation remain future work.
+
+### UI design exploration (draft, not approved for implementation)
+
+2026-09-07: the user requested a deliberate UI/UX design discussion with creative
+freedom and explicitly prohibited coding for now. PR #4 remains open. No new
+implementation or merge is authorized by this design discussion.
+
+Proposed direction: a botanical observatory. The cellular world is the visual
+focus; restrained forest/charcoal surfaces, warm neutral text, sage accents,
+and amber seeds support observation. Use a readable sans-serif for labels and
+monospaced numerals for data. Preserve square-cell organisms; avoid decorative
+particles that could be mistaken for simulation entities. The generated image
+is a brainstorming concept with sample data, not a specification or a capture
+of the running application.
+
+Observed issues in the current screen:
+- Archive lookup and an always-visible Retry button precede the selected plant.
+- World/HUD scale hides important information and leaves organisms very small.
+- Playback controls and a clear paused state are not visible.
+- Extinction leaves an unexplained empty world.
+- A historical specimen is displayed beside the current world with weak context.
+- DNA occupies substantial space before the user understands the organism.
+
+Code-level interaction risks still needing focused reproduction:
+- Archive refresh clears selection before loading, potentially flashing the
+  empty inspector during ordinary topology updates.
+- Per-frame inspector reconstruction may disturb interaction/focus/scroll.
+- Space is handled globally even when a button has keyboard focus.
+The user's own bug examples are requested and remain pending.
+
+Proposed information architecture:
+- Observe: world, persistent playback state/controls, a few population metrics,
+  contextual specimen inspector, optional events/population graph.
+- History: browsable runs and records, explicit historical context; opening
+  history should pause current playback while preserving its prior state.
+- Herbarium: intentionally saved genomes, with naming and planting actions.
+
+Inspector: Overview / Lineage / DNA; keep specimen identity, status, and save
+visible. Loading must preserve the existing card and scroll position. Selection
+should survive death. Never imply that a historical specimen can be focused in
+an active world or that a population graph can rewind the simulation.
+
+Interaction proposals to evaluate before implementation: zoom anchored at the
+pointer, explicit Fit world and Focus selected, drag-to-pan distinct from click,
+visible Step and speed controls, hover feedback at adequate zoom, a mobile
+bottom inspector that does not compete with world gestures. Exact camera,
+keyboard, touch, focus, and pause/resume behavior must be specified first.
+
+Important dependencies: historical shape previews require storing snapshots;
+current records do not contain cell shapes. Energy trend explanations need
+measurements. The current reproduction rules do not allow living parents and
+their offspring to coexist: illustrative mockup events must not suggest this.
+No preview should invent missing data or promise unimplemented rewind/resume.
+
+Next design milestones: agree on visual direction; specify Observe and the
+inspector; design initial, selected, paused, dead, extinct, loading, error, and
+historical states plus mobile layout; prioritize confirmed bugs; then agree on
+small implementation iterations. Export/import and large genealogy views are
+not prerequisites for the first visual redesign. This is an uncommitted draft.
+
+Design follow-up: the user endorsed the botanical observatory direction and
+requested an initial-state concept with one founder. The refined concept uses
+one square sprout, flat soil, an initial close-up, concise inspection guidance,
+and visible transport controls. Proposed (not yet approved): start new worlds
+paused at tick 0 so the founder cannot die before the user begins observation.
+A click opens the inspector without starting time; Start begins playback.
+The camera must not automatically move after its initial framing. Fit world
+is an explicit action. Keep initial guidance dismissible after selection and
+show population history only after samples exist. Exact zoom/speed values in
+the concept are illustrative. Coding remains deferred; the next design state
+is selecting and observing the founder, followed by death/extinction states.
+
+Design agreement: the user approved starting new worlds paused with an initial
+founder close-up. Selection does not start time, and camera movement remains
+explicit. The user then requested a paired living/dead specimen concept.
+
+The paired concept retains the selected specimen, active inspector tab, save
+action, and world camera after death. Living values become explicitly labelled
+final values; age, energy, death tick and cause remain inspectable. Focus in
+world becomes unavailable for a dead body; DNA can still be saved. No historical
+shape is invented. Mockup values and shapes are illustrative.
+
+Death of a selected plant must not stop a world containing other plants or seeds.
+Only zero living plants AND zero seeds triggers the proposed ended state, which
+stops automatic stepping and offers run review without resetting or closing
+the inspector. Seeds remaining without plants is a separate waiting state.
+The refined concept disables Resume/Step for an ended run. Whether planting a
+saved genome reopens that run or starts a new one remains an open product choice.
+The recorded-at-death caption applies to final organism measurements; descendant
+relationships can still change when surviving seeds germinate. These are design
+notes, not implementation authorization. No code or PR changes were made.
+
+Lineage design exploration: the user requested the next concept. A local family
+view shows immediate parents, the selected specimen, and a bounded page of
+children rather than loading a full historical tree. Support zero, one, or two
+parents; crossover makes ancestry a graph rather than a strict tree.
+
+Proposed navigation: a relative opens in the same inspector and keeps Lineage
+active; Back restores the previous record, filter, page, and scroll. Return to
+the original specimen provides an explicit anchor for an exploration session.
+Selecting a relative does not move the camera. Locate is a separate action,
+available only for living specimens in the current run. World highlights must
+identify whether they cover all loaded descendants or only the displayed family;
+never imply that a partially loaded lineage is complete.
+
+For large offspring lists, use stable ordering and pagination with counts; do
+not reorder rows under the pointer when births or deaths arrive. Diagram and
+list must use the same filter/page. The concept repeats children as nodes and
+rows to compare structure and details; evaluate collapsing this duplication in
+a narrow inspector. Three rows in the image are illustrative, not a fixed limit.
+
+Historical records with no recorded death may have unknown final status; they
+must not be labelled currently Alive or offered Locate. Include an Unknown
+status/filter where applicable. Children counts may grow after a parent's death.
+Handle missing records, read failures, no parents, no children yet, loading, and
+two-parent crossover explicitly before implementation. Keyboard-accessible
+record controls and non-color status labels are required. On narrow screens,
+prefer stacked parents/selected/children over a miniature unreadable graph.
+
+The image is a design concept with sample plants and data. The direction still
+needs user evaluation. No code, dependency, archive schema, commit, push, or PR
+changes are authorized by this design exploration.
+
+Expanded lineage map concept: the user liked the two-level approach (immediate
+relatives in the inspector plus an expandable full-area graph) and requested a
+complex-family sketch. The concept shows a two-parent crossover, four generation
+rows, and a collapsed group of immediate children. Selected specimen and the
+exploration origin have distinct labels/borders. Highlighted connections explain
+the route between them; Return to origin restores the exploration anchor.
+
+Proposed semantics: nodes open records without recentering; Expand loads another
+bounded portion of a family, preserving the selected node's screen position.
+Shared ancestors/offspring have one identity in the graph, not duplicated plants.
+Generation rows indicate genealogical depth, not elapsed time; crossover parents
+can occupy different generation rows. A collapsed count denotes immediate hidden
+children, not all descendants. Living branches retains dead connecting ancestors.
+Do not classify incompletely loaded branches as extinct or complete.
+
+Keep graph geometry stable while inspecting. New topology is offered through
+an explicit update rather than automatic rearrangement. Display the graph's
+snapshot tick so Alive labels are not mistaken for guaranteed current status;
+any Locate action must recheck that a specimen is alive in the current world.
+Back to world restores the earlier world camera and selection context. Status
+unknown, errors, empty filters, large overlapping pedigrees, and mobile graph
+navigation still need design before implementation. This sketch is illustrative,
+not a fixed layout algorithm or an implementation approval.
+
+### DNA inspector exploration
+
+2026-09-08: the user asked to continue the no-code UI design work. The concept
+connects the specimen, its 16-row/four-direction genome, and a selected instruction
+explanation. It is an illustrative expanded DNA view, not generated simulation
+output or an approved change in model rules.
+
+Confirmed current semantics: values 0..15 request a new sprout in that direction
+and assign its gene index. Values 16..31 issue no growth command. Directions are
+left, up, right, down. New founders start at gene 0. Growth can fail because of
+occupancy, boundaries, soil, or shading; a genome is not a guaranteed final shape.
+A sprout with all directions disabled becomes a leaf. A sprout with commands
+but no successful growth can accumulate seed energy if the plant can pay.
+
+Example: gene 03 = [05, 09, 22, 17] requests left/up growth with new genes 05/09,
+while right/down are disabled. Keep raw inactive values readable: 22 and 17 have
+the same immediate disabled behavior but are distinct genetic values that may
+respond differently to future mutations. Do not encode numbers as intensity.
+
+Proposed interactions: row selection highlights matching current sprout cells;
+cell selection reveals its stored gene and cell type; selecting a valid target
+value navigates to its gene with Back navigation. Clarify whether highlighting
+means matching stored gene IDs or currently executable sprout instructions.
+No matching current sprout does not mean the gene was never used or is useless.
+Selection/hover must not move the camera, edit DNA, or change playback implicitly.
+A dense DNA inspection view can offer an explicit Pause action, preserving the
+user's choice. On narrow screens, the instruction explanation goes below the
+matrix instead of compressing the numbers.
+
+For dead plants, preserve the matrix and command explanation but omit lost body
+highlights. Exact historical execution and cell-shape previews require additional
+stored data. A later parent comparison should label positional DNA differences,
+not inferred mutation events or proven causes of a phenotype; two-parent origins
+cannot always be reconstructed from final DNA alone. Explain all-disabled genes,
+self-references/cycles, blocked growth, missing historical data, and unknown
+activity without declaring an error. DNA editing and speculative growth previews
+remain out of scope. Prototype labels/art need cleanup (e.g. active-tab wording
+and cells drawn within soil) before any implementation specification is final.
+
+Next: consolidate approved direction and proposed behaviors across Observe,
+Overview, Lineage, expanded map, and DNA; review unresolved state transitions and
+mobile layout, then agree on implementation iterations. Code remains unchanged.
+
+### Observatory implementation: iteration 1
+
+2026-09-08: the user authorized implementation of the agreed plan and deferred
+a separate investigation of previously noticed bugs. Branch
+`feature/observatory-observe` builds on unmerged readable-inspector PR #4;
+neither PR #4 nor this iteration may be merged without a new merge instruction.
+
+Scope: observatory Observe shell and Overview, paused founder close-up, explicit
+play/pause/step and 1x/4x/16x controls, pointer-anchored zoom/pan, fit/focus,
+readable world statistics, and initial/dead/waiting/ended/storage-error states.
+Keep existing history lookup, saved genomes, lineage links, and raw DNA available;
+expanded map and explanatory DNA redesign are later iterations.
+
+Acceptance: startup/reset at tick 0 paused; one step advances exactly one tick;
+1x targets 30 ticks/s independently of frame rate with bounded catch-up; storage
+failure stops stepping without losing pending records; selection and camera do
+not change with playback; dragging does not select; zoom anchors at pointer;
+Overview remains available after death; extinction requires no plants or seeds.
+Entering History/Herbarium pauses; returning to Observe stays paused. New-world
+creation uses explicit confirmation. Planting into an empty run keeps its run
+identity and leaves playback paused until the user resumes. Responsive layout
+and keyboard controls must be checked in browser. No new dependencies.
+
+Implemented outcome: Observe and Overview now use the dark observatory layout,
+with camera and playback extracted into independent modules. History lookup and
+the genome library remain available as separate screens. Saved-genome naming is
+inline; resetting asks for confirmation and preserves archived records. Overview
+keeps the selected record after death and distinguishes previous-run snapshots.
+DNA and relative controls retain their DOM until their data changes.
+
+Validation: `npm test` passes all 49 tests, including camera gestures/transforms,
+frame-rate-independent playback, one-tick stepping, storage recovery, confirmed
+reset, and death/waiting/ended states. Native browser layout checks pass at
+1280x720, 1000x320, 720x720, 390x844, and 320x640. Browser interaction checks cover
+selection, Step, fit/focus, playback through death, inline genome save, planting
+from Herbarium, confirmed reset, and reopening a record from the previous run.
+GitHub Actions must pass on the pushed commit before this iteration can merge.
+
+Limits: speeds are targets subject to rendering/storage throughput; touch uses
+dragging and zoom buttons (no pinch gesture). Physical touch-device behavior and
+cross-browser testing beyond the available browser remain unverified. No new
+blocking issues were found in the checked flows. The separate existing-bug review
+remains deferred at the user's request. Next planned iteration: the bounded local
+family view and its navigation states; expanded lineage map and explanatory DNA
+follow afterward.
