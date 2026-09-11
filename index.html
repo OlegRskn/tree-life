@@ -46,6 +46,8 @@
         <div class="specimen-header"><span class="eyebrow" id="specimen-context">CURRENT WORLD</span><div class="specimen-title"><h1>Plant <span id="info-id"></span></h1><span id="plant-status" class="specimen-status"></span></div><button id="btn-save-genome" disabled>Save genome</button>
           <form id="genome-save-form" hidden><label for="genome-name-input">Genome name</label><input id="genome-name-input" maxlength="100" required /><div class="transport-group"><button type="submit" class="primary">Save</button><button id="cancel-genome-save" type="button">Cancel</button></div></form><p id="genome-save-message" role="status"></p>
         </div>
+        <div class="inspector-tabs" role="tablist" aria-label="Plant details"><button id="inspector-tab-overview" role="tab" aria-selected="true" aria-controls="inspector-overview">Overview</button><button id="inspector-tab-lineage" role="tab" aria-selected="false" aria-controls="inspector-lineage" tabindex="-1">Lineage</button><button id="inspector-tab-dna" role="tab" aria-selected="false" aria-controls="inspector-dna" tabindex="-1">DNA</button></div>
+        <section id="inspector-overview" role="tabpanel" aria-labelledby="inspector-tab-overview">
         <div class="inspector-heading">Overview <span id="values-caption">Current values</span></div>
         <dl class="facts">
           <div><dt>Generation</dt><dd id="info-generation"></dd></div>
@@ -53,14 +55,25 @@
           <div><dt id="energy-label">Energy</dt><dd id="info-energy"></dd></div>
           <div><dt>Born</dt><dd id="info-born"></dd></div>
           <div><dt>Cells</dt><dd id="info-cells"></dd></div>
-          <div><dt>Children</dt><dd id="children-count"></dd></div>
+          <div><dt>Children at refresh</dt><dd id="children-count"></dd></div>
         </dl>
         <div id="death-details" class="death-details" hidden></div>
-        <button id="focus-plant" class="wide">Focus in world</button><p id="focus-hint" class="muted"></p>
-        <details class="inspector-details"><summary>Parents &amp; children</summary><h3>Parents</h3><div id="info-parents"></div><h3>Children</h3><div id="info-children"></div></details>
-        <details class="inspector-details"><summary>DNA · 16 genes</summary><p class="muted">Raw instructions: 0–15 reference a gene. 16–31 do not request growth.</p><div id="info-dna"></div></details>
+        </section>
+        <section id="inspector-lineage" role="tabpanel" aria-labelledby="inspector-tab-lineage" hidden>
+          <div class="family-navigation"><button id="family-back" disabled>← Back</button><button id="family-origin" disabled>Return to origin</button></div>
+          <p id="family-origin-label" class="muted"></p>
+          <h3 class="family-heading">Parents</h3><div id="family-parents" class="family-parents"></div>
+          <div class="family-anchor"><span class="eyebrow">SELECTED PLANT</span><strong id="family-selected"></strong><span id="family-selected-detail"></span></div>
+          <div class="family-heading-row"><h3 class="family-heading">Children</h3><span id="family-child-count"></span></div>
+          <div id="family-children" class="family-children"></div>
+          <div class="family-pagination"><button id="family-prev" aria-label="Previous children page" disabled>←</button><span id="family-page" role="status"></span><button id="family-next" aria-label="Next children page" disabled>→</button></div>
+          <p class="muted">Immediate family, ordered by plant ID. Refresh to include new children.</p><button id="family-refresh" class="wide">Refresh family</button>
+        </section>
+        <section id="inspector-dna" role="tabpanel" aria-labelledby="inspector-tab-dna" hidden><div class="inspector-heading">DNA · 16 genes</div><p class="muted">Raw instructions: 0–15 reference a gene. 16–31 do not request growth.</p><div id="info-dna"></div></section>
+        <div class="inspector-focus"><button id="focus-plant" class="wide">Focus in world</button><p id="focus-hint" class="muted"></p></div>
       </div>
       <p id="archive-message" role="status"></p>
+      <button id="family-retry" hidden>Retry family</button>
     </aside>
   </main>
   <section id="history-screen" class="library-screen" hidden aria-labelledby="history-title"><span class="eyebrow">THE OBSERVATION ARCHIVE</span><h1 id="history-title">Every life leaves a record.</h1><p class="intro">Look up a plant from this world or an earlier run. Opening a record keeps the current world paused.</p><div id="archive-section" class="lookup-card"><h2>Find a plant</h2><div class="lookup-fields"><label>Run<input id="archive-run" type="number" min="1" placeholder="Current" /></label><label>Plant ID<input id="archive-plant" type="number" min="1" value="1" /></label></div><button id="archive-open" class="primary">Open record</button><p id="history-message" role="status"></p></div><p class="muted">Records are stored in this browser. Historical shapes and resumable worlds are not saved.</p></section>

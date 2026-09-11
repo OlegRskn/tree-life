@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Lineage browser checks</title>
+<style>body{margin:0;background:#0c161b;color:#e7e3d7;font:14px Arial}#result{padding:12px;margin:0}iframe{display:block;border:0;width:100%;height:850px}</style>
+<body><p id="result">Running lineage checks with synthetic family records…</p>
+<script type="module">
+const width = Number(new URLSearchParams(location.search).get("width"));
+const html = (await (await fetch("../index.html")).text())
+  .replace('<head>', '<head><base href="../">')
+  .replace('src="main.js"', 'src="tests/lineage-browser.js"');
+const frame = document.createElement("iframe"); frame.title = "Synthetic family test";
+if (width >= 320 && width <= 1600) frame.style.width = `${width}px`;
+frame.srcdoc = html; document.body.appendChild(frame);
+</script></body></html>

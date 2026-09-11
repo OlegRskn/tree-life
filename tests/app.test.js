@@ -143,3 +143,69 @@ test("death preserves Overview and ends only when neither plants nor seeds remai
     assert.match(h.el("world-state").textContent, /Waiting for germination/);
   } finally { h.restore(); }
 });
+
+test("Lineage tabs and family navigation preserve camera, playback, page and scroll", async () => {
+  const h = await harness();
+  try {
+    const template = h.app.simulation.state.plants[0];
+    const records = Array.from({ length: 9 }, (_, i) => ({ ...template, id: i + 2, parents: [1], alive: false, diedAt: 50, generation: 1 }));
+    records.push({ ...template, id: 20, parents: [8, 9], alive: false, diedAt: 60, generation: 2 });
+    await h.store.write(1, records);
+    h.store.get = () => { throw new Error("Unbounded legacy lookup must not be used"); };
+    await h.selectFounder();
+    await h.click("inspector-tab-lineage");
+    assert.equal(h.el("inspector-lineage").hidden, false);
+    assert.equal(h.el("family-children").children.length, 6);
+    assert.equal(h.el("family-child-count").textContent, "9 children");
+    await h.click("family-next");
+    assert.equal(h.el("family-page").textContent, "7–9 of 9");
+    h.el("info-panel").scrollTop = 280;
+    const camera = h.app.viewState.camera;
+    const pose = [camera.x, camera.y, camera.zoom];
+    await h.click("play-toggle");
+    await h.el("family-children").children[0].fire("click");
+    assert.equal(h.app.viewState.selectedPlant.id, 8);
+    await h.el("family-children").children[0].fire("click");
+    assert.equal(h.app.viewState.selectedPlant.id, 20);
+    assert.equal(h.el("family-parents").children.length, 2);
+    await h.click("family-back"); assert.equal(h.app.viewState.selectedPlant.id, 8);
+    await h.click("family-origin");
+    assert.equal(h.app.viewState.selectedPlant.id, 1);
+    assert.equal(h.el("family-page").textContent, "7–9 of 9");
+    assert.equal(h.el("info-panel").scrollTop, 280);
+    assert.deepEqual([camera.x, camera.y, camera.zoom], pose);
+    assert.equal(h.app.playback.running, true); assert.equal(h.app.simulation.state.tickCount, 0);
+    await h.click("inspector-tab-dna"); assert.equal(h.el("inspector-dna").hidden, false);
+    await h.selectFounder(); assert.equal(h.el("inspector-overview").hidden, false);
+    assert.equal(h.el("family-back").disabled, true);
+  } finally { h.restore(); }
+});
+
+test("historical family statuses, failed reads and tab keyboard controls remain usable", async () => {
+  const h = await harness();
+  try {
+    const template = h.app.simulation.state.plants[0];
+    const run = await h.store.createRun();
+    await h.store.write(run, [{ ...template, id: 1, parents: [99] }, { ...template, id: 2, parents: [1] }]);
+    h.el("archive-run").value = run; h.el("archive-plant").value = 1;
+    await h.click("archive-open");
+    assert.equal(h.el("plant-status").textContent, "Unknown");
+    assert.equal(h.el("focus-plant").disabled, true);
+    await h.el("inspector-tab-overview").fire("keydown", { key: "ArrowRight", preventDefault() {} });
+    assert.equal(h.el("inspector-lineage").hidden, false);
+    assert.equal(h.el("family-children").children[0].attributes["aria-label"], "Open plant #2, Unknown");
+    const childButton = h.el("family-children").children[0];
+    await h.store.write(run, [{ ...template, id: 2, parents: [1], alive: false, diedAt: 10 }]);
+    await h.click("family-refresh");
+    assert.equal(h.el("family-children").children[0], childButton, "refreshing status keeps the existing control");
+    assert.equal(childButton.attributes["aria-label"], "Open plant #2, Dead");
+    await h.el("family-parents").children[0].fire("click");
+    assert.equal(h.el("family-retry").hidden, false);
+    assert.match(h.el("archive-message").textContent, /no record/);
+    assert.equal(h.app.viewState.selectedPlant.id, 1);
+    await h.store.write(run, [{ ...template, id: 99, parents: [] }]);
+    await h.click("family-retry");
+    assert.equal(h.app.viewState.selectedPlant.id, 99);
+    assert.equal(h.el("family-retry").hidden, true);
+  } finally { h.restore(); }
+});
