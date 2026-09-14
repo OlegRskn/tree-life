@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Demo browser checks</title>
+<style>body{margin:0;background:#0c161b;color:#e7e3d7;font:14px Arial}#result{padding:12px;margin:0}iframe{display:block;border:0;width:100%;height:850px}</style>
+<body><p id="result">Running demo checks with disposable in-memory history…</p>
+<script type="module">
+const params = new URLSearchParams(location.search);
+const width = Number(params.get("width")), height = Number(params.get("height"));
+const html = (await (await fetch("../index.html")).text())
+  .replace('<head>', '<head><base href="../">')
+  .replace('src="main.js"', 'src="tests/demo-browser.js"');
+const frame = document.createElement("iframe"); frame.title = "Demo interaction test";
+if (width >= 320 && width <= 1600) frame.style.width = `${width}px`;
+if (height >= 320 && height <= 1200) frame.style.height = `${height}px`;
+frame.srcdoc = html; document.body.appendChild(frame);
+</script></body></html>

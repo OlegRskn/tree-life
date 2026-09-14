@@ -15,7 +15,7 @@ Open http://127.0.0.1:8080. The server listens only on the local interface.
 Set the `PORT` environment variable to use another port. Any static HTTP server
 rooted at the project directory also works. ES modules may not load via `file://`.
 
-The world opens paused at tick 0, close to its first plant. **Start / Pause**
+The demo opens paused at tick 0 with seed 16 and 4x speed, close to its first plant. **Start demo / Pause**
 controls playback; **Step** advances exactly one simulation tick while paused.
 Speeds target 30 ticks/s (1x), 120 ticks/s (4x), and 480 ticks/s (16x), with at
 most eight steps per frame. Slow rendering or storage reduces actual speed;
@@ -55,6 +55,45 @@ The inspector keeps its text size independently of the world. On wider screens
 it occupies a scrollable sidebar; at widths of 760 CSS pixels or less it sits
 below the world and the page scrolls. Canvas fills its camera viewport without
 stretching world cells. Very short desktop windows also allow page scrolling.
+
+### Trying the demo and changing conditions
+
+Start the demo, watch the founder grow and produce seeds, then use **Fit world**
+to follow the population. With the starting settings and no interventions, seed 16
+reaches generation 20 at tick 10,677 and generation 28 by tick 15,000. These are
+deterministic model results; playback time depends on the device and storage.
+
+**New world** offers the reproducible demo, a random genome with an explicit seed,
+or **Repeat this start**. Repeat restores the current run's original seed,
+conditions, and shadow rule. It does not replay later edits or planted genomes.
+Every new world starts paused and preserves earlier archive records.
+
+Open **Conditions** beside **Plant** to experiment while running or paused.
+Release a slider or finish editing a number to apply it between simulation steps.
+Each setting has a reset button; **Restore starting conditions** resets the group.
+
+| Setting | Range | When it takes effect |
+|---|---|---|
+| Light | 0–3x | Next energy cycle; scales leaf energy collection |
+| Maintenance | 0–3x | Next energy cycle; scales living-cell costs |
+| Mutation rate | 0–20% | New mutation events; existing DNA stays unchanged, stress can raise the rate |
+| Growth under shade | 0–10 sources | Next growth cycle; germination still requires no shade |
+| Starting energy | 0–2,000 | New plants only |
+| Minimum / maximum age | 1–300 cycles | New plants only; minimum must not exceed maximum |
+
+Energy and growth cycles occur every five simulation ticks. Changing newborn
+settings never rewrites an existing plant's energy or assigned lifespan. Invalid
+values leave the model unchanged. Editing preserves camera, selection, and
+playback; a storage failure pauses advancement until a successful retry.
+
+The population chart shares one count scale for plants and seeds. It retains up
+to 200 samples, taken every 100 ticks and at edits or extinction. Markers show
+Conditions edits within the visible interval; the sidebar lists the latest six.
+Up to 100 recent edits stay in memory, while the run archive stores all applied
+Conditions edits with their tick and before/after values, plus the starting
+metadata. The existing Display shadow-mode switch is outside this edit log.
+Archived settings are not yet browsable in History, and the chart is not a saved
+world or evidence of causation. Repeat a start to compare another setting.
 
 ### Persistent history
 
@@ -105,6 +144,8 @@ Tests use the built-in `node:test` runner and cover:
 - archive eviction, failed-write retry, run isolation, late offspring, and
   unchanged worlds after 5000 ticks;
 - asynchronous lineage selection, stale-read cancellation, and read errors.
+- repeatable 15,000-tick demo survival, condition validation/application timing,
+  newborn-only changes, bounded trends, and intervention write-failure recovery.
 
 For native IndexedDB checks, run `npm start` and open
 http://127.0.0.1:8080/tests/archive-browser.html. The page must report **PASS**
@@ -112,6 +153,7 @@ after its automatic reload. It tests atomic aborts, late children, run isolation
 missing records, close/reopen, and reload persistence in a disposable test database.
 It also checks bounded family pages with 500 children, two-parent crossover,
 missing parents, page order, and late children without loading all child IDs.
+Start metadata and intervention deduplication also survive its automatic reload.
 These browser checks are separate from the Node suite and must also be run when
 changing the IndexedDB adapter.
 
@@ -126,6 +168,11 @@ Open http://127.0.0.1:8080/tests/lineage-browser.html for the complete family
 navigation scenario using synthetic in-memory records and the real app. Add
 `?width=390` to check mobile navigation and page-scroll restoration. Both must
 report PASS. These fixtures do not write the user's history or genome collection.
+
+Open http://127.0.0.1:8080/tests/demo-browser.html for demo/random/repeat starts,
+live and paused edits, invalid input, keyboard focus, chart markers, and layout.
+Also run with `?width=390` and `?width=320`. Each must report PASS. This scenario
+uses disposable in-memory history and the real application.
 
 ### GitHub Actions
 
@@ -177,6 +224,7 @@ planting/deletion, and resizing.
 | `src/simulation/genetics.js` | DNA generation, mutation, and crossover |
 | `src/simulation/random.js` | Independent random generator with a numeric seed |
 | `src/simulation/config.js` | Default world rules |
+| `src/simulation/conditions.js` | Editable condition descriptors, atomic validation, and seeded starts |
 | `src/rendering/renderer.js` | Reads the model and draws on Canvas |
 | `src/rendering/camera.js` | World/screen coordinates, zoom, pan, fit/focus, and pointer gestures |
 | `src/rendering/config.js` | Display settings |
@@ -184,6 +232,8 @@ planting/deletion, and resizing.
 | `src/ui/playback.js` | Wall-time tick budget, playback speed, and bounded catch-up |
 | `src/ui/lineage-navigation.js` | Async family navigation, bounded Back history, origin, and stale-read cancellation |
 | `src/ui/family-inspector.js` | Inspector tabs, family cards, pages, and scroll restoration |
+| `src/ui/conditions-panel.js` | Conditions controls, application feedback, and trend rendering |
+| `src/ui/experiment-history.js` | Bounded population samples, interventions, and chart geometry |
 | `src/persistence/genomes.js` | Reads/writes genomes through supplied storage |
 | `src/persistence/archive.js` | IndexedDB records, indexed lineage queries and archive acknowledgements |
 
@@ -206,8 +256,8 @@ console.log(simulation.state.plants.length); // Living plants only
 simulation.reset(); // Repeat the initial state for this seed
 ```
 
-A seed is an integer from 0 to 4294967295. Without one, the model uses Math.random,
-so normal browser launches remain random. For special experiments, supply a
+A seed is an integer from 0 to 4294967295. Without one, the standalone model uses
+Math.random; the browser app explicitly starts demo seed 16. For special experiments, supply a
 `random` function; it takes precedence over `seed` and continues its sequence
 across resets.
 
@@ -215,7 +265,8 @@ across resets.
 world with its own settings; ground level is derived from height. Set world
 dimensions at creation rather than changing them in a running world.
 
-API: `step()`, `reset()`, `plantSavedGenome(dna)`, `plantAt(x, y)`,
+API: `step()`, `reset({ seed, conditions, shadowMode } = {})`, `getConditions()`,
+`setConditions(patch)`, `plantSavedGenome(dna)`, `plantAt(x, y)`,
 `toggleShadowMode()`, and `state`. State is available for reading and diagnostics;
 normal UI code should not mutate plants or maps directly. `reset()` preserves
 the `state` object reference but replaces its collections. The UI clears the

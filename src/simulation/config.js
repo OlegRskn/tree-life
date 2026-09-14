@@ -13,6 +13,8 @@ export const defaultConfig = {
   SEED_FALL_INTERVAL: 3,
 
   // === ECONOMICS ===
+  LIGHT_MULTIPLIER: 1,
+  MAINTENANCE_MULTIPLIER: 1,
   UPKEEP_WOOD: 1,
   UPKEEP_LEAF: 2,
   UPKEEP_SPROUT: 1,

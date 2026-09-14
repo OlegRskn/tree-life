@@ -29,9 +29,9 @@ export function openArchive(indexedDB = globalThis.indexedDB, name = "tree-life-
       }
       resolve({
         close: () => db.close(),
-        createRun() {
+        createRun(metadata = {}) {
           return transaction(["runs"], "readwrite", (tx, result) => {
-            const req = tx.objectStore("runs").add({ createdAt: new Date().toISOString() });
+            const req = tx.objectStore("runs").add({ ...metadata, createdAt: new Date().toISOString() });
             req.onsuccess = () => result(req.result);
           });
         },
@@ -52,6 +52,26 @@ export function openArchive(indexedDB = globalThis.indexedDB, name = "tree-life-
               const children = store.index("parents").getAllKeys(`${runId}:${id}`);
               children.onsuccess = () => result({ ...plant, children: children.result.map(key => key[1]) });
             };
+          });
+        },
+        recordInterventions(runId, events) {
+          return transaction(["runs"], "readwrite", tx => {
+            const runs = tx.objectStore("runs");
+            const request = runs.get(runId);
+            request.onsuccess = () => {
+              const run = request.result;
+              if (!run) { tx.abort(); return; }
+              const recorded = run.interventions ?? [];
+              const ids = new Set(recorded.map(event => event.id));
+              run.interventions = [...recorded, ...events.filter(event => !ids.has(event.id))];
+              runs.put(run);
+            };
+          });
+        },
+        getRun(runId) {
+          return transaction(["runs"], "readonly", (tx, result) => {
+            const request = tx.objectStore("runs").get(runId);
+            request.onsuccess = () => result(request.result ?? null);
           });
         },
         family(runId, id, page = 0, limit = 6) {
@@ -97,7 +117,8 @@ export function createArchiveSession(store, simulation) {
   let runId;
   return {
     get runId() { return runId; },
-    async start() { runId = await store.createRun(); },
+    async start(metadata) { runId = await store.createRun(metadata); },
+    recordInterventions(events) { return store.recordInterventions(runId, events); },
     async flush() {
       const changes = simulation.pendingArchiveChanges();
       if (!changes.length) return false;

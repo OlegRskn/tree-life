@@ -493,3 +493,44 @@ and large-scale performance benchmarks remain unverified. No known blocking issu
 remains in these checked flows. New-child notifications and richer live updates
 remain iteration 2. This branch builds on open PR #5; neither PR is merged by this
 iteration. CI must pass on the final pushed commit before merge.
+
+### Demonstration and live experiments
+
+2026-09-11: approved a three-part demo plan on `feature/demo-experiments`:
+1. Reproducible demo/random/repeat starts; the demo reaches at least generation 20.
+2. Conditions panel with live light, maintenance, mutation, and shade controls;
+   newborn-only energy/lifespan settings, validation, and explicit application timing.
+3. Population/seed trends and intervention markers, explanatory first-run copy,
+   and a complete desktop/mobile demo flow.
+
+Acceptance: demo seed 16 reaches generation 20 without intervention; repeats
+restore the same seed and starting conditions. Parameter edits apply between model
+steps, preserve camera/selection/playback, and never rewrite existing DNA or
+assigned lifespan/energy. Invalid values leave the model unchanged. Applied edits
+have a tick and before/after record; trend history is bounded. Preserve existing
+reference simulations at default settings. Verify local tests, native storage,
+browser flows, and CI. Earlier PRs #5/#6 remain unmerged dependencies.
+
+2026-09-14: implemented all three parts. Browser startup uses demo seed 16 at
+4x, paused; new worlds offer demo, random, and repeat. Conditions use validated
+atomic model updates and explicit timing descriptions. The sidebar includes
+newborn settings, per-field/group restoration, and recent edits. A bounded chart
+tracks plants and seeds with intervention markers. Run metadata stores the start
+and applied edits, with retry deduplication and no archive schema migration.
+
+Validation: 62 Node tests pass, including two identical 15,000-tick demo runs
+reaching generation 28 with living plants. Native IndexedDB checks pass for
+metadata, intervention retry/reload, and existing archive scenarios. The complete
+demo browser scenario passes at desktop, 390px, and 320px widths, including edits
+while paused/running, invalid values, keyboard focus, repeat/random/demo resets,
+chart markers, and no horizontal overflow. Five existing layout sizes pass.
+The production page reached generation 22 at tick 11,695 in the browser with
+native storage, a populated trend chart, and no console errors.
+Default reference simulations remain unchanged. README documents test commands,
+application timing, persistence, and repeat semantics.
+
+Limits: old-run condition metadata is stored but not yet exposed by History;
+the Display shadow-mode switch is outside the Conditions intervention log.
+Repeat restores the baseline rather than replaying interventions or plantings.
+Physical touch devices and other browser engines remain unverified. No deployment
+or merge is part of this iteration; final pushed CI must pass before merge.

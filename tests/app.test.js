@@ -6,6 +6,8 @@ import { memoryArchive } from "./helpers/archive-store.js";
 async function harness(options = {}) {
   const context = new Proxy({}, { get: () => () => {}, set: () => true });
   class Element {
+    set id(value) { this.elementId = value; elements.set(value, this); }
+    get id() { return this.elementId; }
     constructor() { this.style = {}; this.dataset = {}; this.children = []; this.listeners = {}; this.attributes = {}; this.value = ""; }
     set innerHTML(value) { this.html = value; this.children = []; }
     get innerHTML() { return this.html; }
@@ -207,5 +209,42 @@ test("historical family statuses, failed reads and tab keyboard controls remain 
     await h.click("family-retry");
     assert.equal(h.app.viewState.selectedPlant.id, 99);
     assert.equal(h.el("family-retry").hidden, true);
+  } finally { h.restore(); }
+});
+
+test("live conditions persist an intervention, preserve interaction, and repeat the original start", async () => {
+  const h = await harness();
+  try {
+    await h.selectFounder(); const plant = h.app.viewState.selectedPlant;
+    const camera = h.app.viewState.camera; const pose = [camera.x, camera.y, camera.zoom];
+    await h.click("play-toggle"); await h.frame(0); await h.click("show-conditions");
+    assert.equal(h.app.playback.running, true);
+    h.el("condition-number-LIGHT_MULTIPLIER").value = "0.6";
+    await h.el("condition-number-LIGHT_MULTIPLIER").fire("change");
+    assert.equal(h.app.simulation.getConditions().LIGHT_MULTIPLIER, 0.6);
+    assert.equal(h.app.simulation.state.tickCount, 0); assert.equal(h.app.viewState.selectedPlant, plant);
+    assert.deepEqual([camera.x, camera.y, camera.zoom], pose);
+    assert.deepEqual(h.store.runs.get(1).interventions[0].after, { LIGHT_MULTIPLIER: 0.6 });
+    h.el("condition-number-LIGHT_MULTIPLIER").value = "999";
+    await h.el("condition-number-LIGHT_MULTIPLIER").fire("change");
+    assert.equal(h.app.simulation.getConditions().LIGHT_MULTIPLIER, 0.6);
+    assert.match(h.el("conditions-message").textContent, /Invalid/);
+    await h.click("new-world"); h.el("new-world-mode").value = "repeat"; await h.click("confirm-new-world");
+    assert.equal(h.app.simulation.getConditions().LIGHT_MULTIPLIER, 1);
+    assert.equal(h.store.runs.get(2).start.seed, 16); assert.equal(h.app.playback.running, false);
+    assert.equal(h.store.runs.get(1).interventions.length, 1);
+  } finally { h.restore(); }
+});
+
+test("failed intervention writes stop playback and retry saves exactly once", async () => {
+  const h = await harness();
+  try {
+    await h.click("play-toggle"); await h.frame(0); h.store.fail = true;
+    h.el("condition-LIGHT_MULTIPLIER").value = "0"; await h.el("condition-LIGHT_MULTIPLIER").fire("change");
+    assert.equal(h.el("archive-error").hidden, false);
+    assert.equal(h.app.simulation.state.tickCount, 0);
+    h.store.fail = false; await h.click("archive-retry"); await h.click("archive-retry");
+    assert.equal(h.store.runs.get(1).interventions.length, 1);
+    assert.equal(h.el("archive-error").hidden, true); assert.equal(h.app.playback.running, true);
   } finally { h.restore(); }
 });

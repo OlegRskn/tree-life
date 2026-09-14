@@ -3,6 +3,7 @@ import { createGenetics } from "./genetics.js";
 import { createRandom } from "./random.js";
 import { createPopulation } from "./population.js";
 import { createSpatial } from "./spatial.js";
+import { readConditions, validateConditions } from "./conditions.js";
 
 export function leafMultiplier(above) {
   if (above === 0) return 2;
@@ -28,7 +29,13 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
   let spatial;
   let archiveChanges;
 
-  function reset() {
+  function reset(options = {}) {
+    const nextConditions = validateConditions(config, options.conditions ?? {});
+    if (options.seed !== undefined) createRandom(options.seed);
+    if (options.shadowMode !== undefined && !["canopy", "column"].includes(options.shadowMode)) throw new RangeError("Invalid shadow mode");
+    Object.assign(config, nextConditions);
+    if (options.seed !== undefined) seed = options.seed;
+    if (options.shadowMode !== undefined) state.shadowMode = options.shadowMode;
     archiveChanges = new Set();
     random = suppliedRandom ?? (seed === undefined ? Math.random : createRandom(seed));
     population = createPopulation();
@@ -187,7 +194,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
       if (cell.type !== "leaf") continue;
       const above = spatial.countCanopyAbove(cell.x, cell.y);
       const level = config.GROUND_LEVEL - cell.y + 5;
-      plant.energy += leafMultiplier(above) * level;
+      plant.energy += leafMultiplier(above) * level * config.LIGHT_MULTIPLIER;
     }
   }
 
@@ -207,7 +214,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
           break;
       }
     }
-    plant.energy -= total;
+    plant.energy -= total * config.MAINTENANCE_MULTIPLIER;
     checkDeath(plant);
   }
 
@@ -341,5 +348,7 @@ export function createSimulation({ config: overrides = {}, seed, random: supplie
     }
   }
   return { state, step, reset, plantSavedGenome, plantAt, toggleShadowMode,
+    getConditions: () => readConditions(config),
+    setConditions(patch) { Object.assign(config, validateConditions(config, patch)); },
     pendingArchiveChanges, acknowledgeArchiveChanges };
 }

@@ -12,7 +12,7 @@
   <header class="app-header">
     <button id="brand-home" class="brand" aria-label="Tree Life home"><svg viewBox="0 0 32 38" aria-hidden="true"><path d="M16 35V19M16 23C3 23 3 6 3 6s13 0 13 13M16 18C16 4 29 3 29 3s1 15-13 15"/></svg><span>TREE LIFE</span></button>
     <nav aria-label="Workspace"><button id="nav-observe" aria-current="page">Observe</button><button id="nav-history">History</button><button id="nav-herbarium">Herbarium</button></nav>
-    <div class="run-meta"><span id="run-id">Opening...</span><span id="archive-status" role="status">Opening history</span></div>
+    <div class="run-meta"><span id="run-id">Opening...</span><span id="start-label">Demo · Seed 16</span><span id="archive-status" role="status">Opening history</span></div>
   </header>
   <div id="archive-error" class="error-banner" role="alert" hidden><span id="archive-error-message"></span><button id="archive-retry" hidden>Retry saving</button></div>
   <main id="observe-screen">
@@ -24,6 +24,7 @@
         <div id="world-notice" hidden><span class="notice-mark" aria-hidden="true">◇</span><h2 id="world-notice-title"></h2><p id="world-notice-copy"></p><button id="review-run">Review run</button></div>
         <span id="camera-mode" class="camera-caption">Founder view</span>
       </div>
+      <div class="trend-panel"><div class="trend-heading"><span>Population over time</span><span><i class="plant-key"></i> Plants <i class="seed-key"></i> Seeds</span></div><svg id="population-trend" viewBox="0 0 560 60" preserveAspectRatio="none" role="img" aria-label="Population trend"><path id="trend-plants"/><path id="trend-seeds"/><g id="trend-markers"></g></svg><div class="trend-caption"><span id="trend-range">Tick 0</span><span>│ Condition change</span></div></div>
       <div class="transport" aria-label="Simulation controls">
         <span id="playback-status" class="state-indicator" role="status">Paused</span>
         <div class="transport-group"><button id="play-toggle" class="primary">Start</button><button id="step-once" title="Advance exactly one simulation tick">Step</button></div>
@@ -37,10 +38,13 @@
       </div>
     </section>
     <aside id="info-panel" aria-label="Plant inspector" tabindex="0">
+      <div class="inspector-mode" role="group" aria-label="Inspector mode"><button id="show-plant" aria-pressed="true">Plant</button><button id="show-conditions" aria-pressed="false">Conditions</button></div>
+      <section id="conditions-panel" hidden aria-labelledby="conditions-title"><span class="eyebrow">CHANGE ONE THING</span><h1 id="conditions-title">Living conditions</h1><p class="conditions-intro">Release a slider or finish editing a number to apply. Watch the population trend, then inspect the plants that remain.</p><div id="conditions-fields"></div><details class="conditions-advanced"><summary>New plant settings</summary><div id="conditions-advanced"></div></details><button id="conditions-reset" class="wide">Restore starting conditions</button><p id="conditions-message" role="status"></p><h3 class="family-heading">Recent changes</h3><div id="conditions-events"></div><p class="muted">The graph shows counts, not proof of a cause. Repeat the same start to explore another setting.</p></section>
+      <div id="plant-panel">
       <div id="info-empty">
-        <span class="eyebrow">A LIVING EXPERIMENT</span><h1>A world begins.</h1><p>One founder.<br>An open world.</p><p>Select a plant to explore its life and the instructions behind its growth.</p>
+        <span class="eyebrow">A LIVING EXPERIMENT</span><h1 id="welcome-title">Watch a lineage take root.</h1><p id="welcome-copy">A reproducible living world. Start at 4×, watch the founder grow, then follow its children.</p><p>Select a plant to explore its family. Open Conditions to change its environment.</p>
         <svg class="founder-symbol" viewBox="0 0 240 90" aria-hidden="true"><path d="M20 66H220"/><rect x="106" y="39" width="27" height="27"/><path class="soil-hatch" d="m30 70-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8"/></svg>
-        <div class="explore-guide"><span class="eyebrow">START EXPLORING</span><p><b>01</b> Click a plant to inspect</p><p><b>02</b> Scroll or use + / − to zoom</p><p><b>03</b> Drag the world to explore</p><p class="key-hint"><kbd>Space</kbd> play / pause</p></div>
+        <div class="explore-guide"><span class="eyebrow">START EXPLORING</span><p><b>01</b> Start and watch the founder grow</p><p><b>02</b> Seeds are released when a plant dies</p><p><b>03</b> Try less light in Conditions</p><p class="muted">Use Fit world as the family spreads. Scroll to zoom; drag to explore.</p><p class="key-hint"><kbd>Space</kbd> play / pause</p></div>
       </div>
       <div id="info-content" style="display:none">
         <div class="specimen-header"><span class="eyebrow" id="specimen-context">CURRENT WORLD</span><div class="specimen-title"><h1>Plant <span id="info-id"></span></h1><span id="plant-status" class="specimen-status"></span></div><button id="btn-save-genome" disabled>Save genome</button>
@@ -74,11 +78,12 @@
       </div>
       <p id="archive-message" role="status"></p>
       <button id="family-retry" hidden>Retry family</button>
+      </div>
     </aside>
   </main>
   <section id="history-screen" class="library-screen" hidden aria-labelledby="history-title"><span class="eyebrow">THE OBSERVATION ARCHIVE</span><h1 id="history-title">Every life leaves a record.</h1><p class="intro">Look up a plant from this world or an earlier run. Opening a record keeps the current world paused.</p><div id="archive-section" class="lookup-card"><h2>Find a plant</h2><div class="lookup-fields"><label>Run<input id="archive-run" type="number" min="1" placeholder="Current" /></label><label>Plant ID<input id="archive-plant" type="number" min="1" value="1" /></label></div><button id="archive-open" class="primary">Open record</button><p id="history-message" role="status"></p></div><p class="muted">Records are stored in this browser. Historical shapes and resumable worlds are not saved.</p></section>
   <section id="herbarium-screen" class="library-screen" hidden aria-labelledby="herbarium-title"><span class="eyebrow">YOUR GENOME COLLECTION</span><h1 id="herbarium-title">Keep what catches your eye.</h1><p class="intro">Save a selected plant's genome, then plant it in your current world. Playback stays paused until you choose to resume.</p><div id="genome-section"><div id="genome-list"></div></div><p id="library-message" role="status"></p></section>
-  <div id="new-world-confirm" class="confirmation" role="alertdialog" aria-labelledby="new-world-title" aria-describedby="new-world-copy" aria-modal="false" hidden><div><span class="eyebrow">A FRESH START</span><h2 id="new-world-title">Start a new world?</h2><p id="new-world-copy">The current world cannot be resumed. Its saved plant records stay in History.</p><div class="transport-group"><button id="cancel-new-world">Keep this world</button><button id="confirm-new-world" class="primary">Start new world</button></div></div></div>
+  <div id="new-world-confirm" class="confirmation" role="alertdialog" aria-labelledby="new-world-title" aria-describedby="new-world-copy" aria-modal="false" hidden><div><span class="eyebrow">A FRESH START</span><h2 id="new-world-title">Choose a starting world</h2><label for="new-world-mode">Starting point</label><select id="new-world-mode"><option value="demo">Demo · a growing lineage</option><option value="random">Random · an unknown future</option><option value="repeat">Repeat this start</option></select><p id="new-world-copy">The current world cannot be resumed. Saved records stay in History. Repeat restores the original seed, shadow rule, and starting conditions; later edits and plantings are not replayed.</p><div class="transport-group"><button id="cancel-new-world">Keep this world</button><button id="confirm-new-world" class="primary">Start new world</button></div></div></div>
   <footer class="app-footer"><span>BOTANICAL OBSERVATORY</span><span>Local worlds. Unexpected lives.</span></footer>
 </div>
 <script src="main.js" type="module"></script>
