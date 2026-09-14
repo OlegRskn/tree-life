@@ -135,6 +135,7 @@ test("death preserves Overview and ends only when neither plants nor seeds remai
     await Promise.resolve();
     assert.equal(h.el("plant-status").textContent, "Dead");
     assert.equal(h.el("playback-status").textContent, "Ended");
+    assert.equal(h.el("world-notice").hidden, false);
     assert.equal(h.el("btn-save-genome").disabled, false);
     assert.equal(h.el("focus-plant").disabled, true);
     assert.match(h.el("death-details").textContent, /tick 5/);
@@ -142,7 +143,8 @@ test("death preserves Overview and ends only when neither plants nor seeds remai
     h.app.simulation.state.seeds.push({ x: 120, y: 80, age: 0, dna: deadDNA, parents: [] });
     await h.click("step-once");
     assert.equal(h.el("playback-status").textContent, "Paused");
-    assert.match(h.el("world-state").textContent, /Waiting for germination/);
+    assert.equal(h.el("world-state").textContent, "Waiting for seeds to sprout");
+    assert.equal(h.el("world-notice").hidden, true, "seeds waiting to sprout must not cover the world");
   } finally { h.restore(); }
 });
 

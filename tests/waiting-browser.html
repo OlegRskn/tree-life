@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Seed waiting checks</title>
+<style>body{margin:0;background:#0c161b;color:#e7e3d7;font:14px Arial}#result{padding:12px}iframe{border:0;width:100%;height:720px}</style>
+<p id="result">Checking waiting, germination, and extinction…</p>
+<script type="module">
+const html = (await (await fetch("../index.html")).text()).replace('<head>', '<head><base href="../">').replace('src="main.js"', 'src="tests/waiting-browser.js"');
+const frame = document.createElement("iframe"); frame.title = "Seed waiting scenario";
+if (new URLSearchParams(location.search).get("width") === "390") frame.style.width = "390px";
+frame.srcdoc = html; document.body.appendChild(frame);
+</script></html>

@@ -48,10 +48,10 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
     text("seed-count", `${state.seeds.length} ${state.seeds.length === 1 ? "seed" : "seeds"}`);
     let gen = 0; for (const plant of state.plants) gen = Math.max(gen, plant.generation);
     text("generation-count", `Generation ${gen}`);
-    text("world-state", empty ? "No living plants or seeds remain." : !state.plants.length ? "Seeds remain. Waiting for germination." : "");
-    el("world-notice").hidden = !ready || failed || !!state.plants.length;
-    text("world-notice-title", empty ? "This world has fallen quiet" : "Life is waiting");
-    text("world-notice-copy", empty ? "Your records and genomes are still here." : "Seeds can still germinate. Let time continue.");
+    text("world-state", empty ? "No living plants or seeds remain." : !state.plants.length ? "Waiting for seeds to sprout" : "");
+    el("world-notice").hidden = !ready || failed || !empty;
+    text("world-notice-title", "This world has fallen quiet");
+    text("world-notice-copy", "Your records and genomes are still here.");
     el("review-run").hidden = !empty;
     el("founder-hint").hidden = !!viewState.selectedPlant || state.tickCount !== 0 || camera.mode !== "founder";
     text("camera-mode", camera.mode === "founder" ? "Founder view" : camera.mode === "fit" ? "Whole world" : "Exploring");
