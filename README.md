@@ -15,15 +15,29 @@ Open http://127.0.0.1:8080. The server listens only on the local interface.
 Set the `PORT` environment variable to use another port. Any static HTTP server
 rooted at the project directory also works. ES modules may not load via `file://`.
 
-Controls: Space pauses, R creates a new world, L changes labels, and S changes
-shadow rules. The corresponding keys on a Russian keyboard layout also work.
-Click a plant to inspect it; links in its card navigate to parents and children.
-Genomes are saved in localStorage for the current browser origin.
+The world opens paused at tick 0, close to its first plant. **Start / Pause**
+controls playback; **Step** advances exactly one simulation tick while paused.
+Speeds target 30 ticks/s (1x), 120 ticks/s (4x), and 480 ticks/s (16x), with at
+most eight steps per frame. Slow rendering or storage reduces actual speed;
+the app never skips simulation steps to catch up.
+
+Click a plant for **Overview**. Drag to pan; scroll or use +/- to zoom. **Fit
+world** shows the full grid; **Focus in world** frames the selected living plant.
+Playback and selection never automatically move the camera. **Space** toggles
+playback, **R** opens new-world confirmation, **L** changes labels, and **S**
+changes shadow rules. Russian-layout equivalents also work. Shortcuts do not
+interfere with form fields or focused buttons. Arrow keys pan a focused Canvas.
+
+**History** and **Herbarium** pause the world. Returning to **Observe** keeps it
+paused. Save genomes through the inspector's inline form; Herbarium can plant
+them into the current run without starting playback. Genomes use localStorage
+for the current browser origin. Parent/child links and raw DNA remain in
+expandable inspector sections while richer inspection views are developed.
 
 The inspector keeps its text size independently of the world. On wider screens
-it occupies a scrollable sidebar; at widths of 720 CSS pixels or less it sits
-below the world and the page scrolls. Canvas keeps its proportions and fits the
-available space. Zooming and panning the world are not implemented yet.
+it occupies a scrollable sidebar; at widths of 760 CSS pixels or less it sits
+below the world and the page scrolls. Canvas fills its camera viewport without
+stretching world cells. Very short desktop windows also allow page scrolling.
 
 ### Persistent history
 
@@ -32,7 +46,7 @@ current run number. Enter a run number and plant ID in **History**, then click
 **Open record**. A blank run field means the current run. Parent/child links
 load records on demand; saved genomes remain a separate library.
 
-Each launch or R reset creates a new numbered run. Earlier records remain
+Each launch or confirmed new-world reset creates a new numbered run. Earlier records remain
 available after a page reload. Birth records preserve DNA and parent IDs; death
 records add final age, death time, and cause. Children are queried through a
 parent index, so offspring born after a parent's death remain discoverable.
@@ -66,8 +80,11 @@ Tests use the built-in `node:test` runner and cover:
   in the same step, and independent map reconstruction in runs up to 5000 ticks;
 - compatibility with the genome library format and propagation of storage errors;
 - integration of the real `src/app.js`, model, renderer, and UI with stubbed DOM,
-  storage, and frame scheduling: selection, pause, toggles, saving, planting,
-  deletion, and restart without duplicating the frame loop.
+  storage, and frame scheduling: paused startup, stepping, navigation, toggles,
+  saving, confirmed reset, storage recovery, and Overview after death;
+- camera coordinate conversion, zoom anchoring, bounded fit/focus/pan, pointer
+  cancellation, and drag-versus-selection behavior;
+- playback at 60/120 Hz, speed changes, bounded catch-up, and pause/resume;
 - archive eviction, failed-write retry, run isolation, late offspring, and
   unchanged worlds after 5000 ticks;
 - asynchronous lineage selection, stale-read cancellation, and read errors.
@@ -81,7 +98,7 @@ changing the IndexedDB adapter.
 
 Open http://127.0.0.1:8080/tests/layout-browser.html for layout checks at five
 viewport sizes, including narrow and short screens. Each size must report PASS:
-readable base text, proportional Canvas sizing, no horizontal overflow, and
+readable base text, Canvas viewport sizing, no horizontal overflow, and
 accessible long cards through scrolling. Node integration tests also verify
 selection at different Canvas sizes and offsets. Browser checks are run separately
 from CI, which runs the Node suite.
@@ -137,8 +154,10 @@ planting/deletion, and resizing.
 | `src/simulation/random.js` | Independent random generator with a numeric seed |
 | `src/simulation/config.js` | Default world rules |
 | `src/rendering/renderer.js` | Reads the model and draws on Canvas |
+| `src/rendering/camera.js` | World/screen coordinates, zoom, pan, fit/focus, and pointer gestures |
 | `src/rendering/config.js` | Display settings |
 | `src/ui/ui.js` | Plant inspector, keyboard, selection, and genome library |
+| `src/ui/playback.js` | Wall-time tick budget, playback speed, and bounded catch-up |
 | `src/persistence/genomes.js` | Reads/writes genomes through supplied storage |
 | `src/persistence/archive.js` | IndexedDB records, indexed lineage queries and archive acknowledgements |
 
@@ -210,7 +229,9 @@ for type and mode, preserves other shadows, and is safe to repeat for the same c
 ### Deferred work
 
 Processing order and growth/energy/seed rules are preserved apart from the documented
-shadow fix. The inspector DOM is still rebuilt during rendering. The app advances
-one step per frame even though the model can run independently. Full-world saves,
-a seed input field, balance changes, and new mechanics are outside these architecture
-iterations. Plans and decisions are recorded in `PROJECT-DIRECTION.md`.
+shadow fix. Inspector relations and DNA retain their DOM until their data changes;
+Overview values update during playback. Full-world saves, a seed input field,
+balance changes, a browsable run list, the expanded lineage map, and explanatory
+DNA inspection remain deferred. Touch supports dragging and the zoom buttons;
+pinch zoom is not implemented. Plans and decisions are recorded in
+`PROJECT-DIRECTION.md`.

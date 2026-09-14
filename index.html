@@ -1,65 +1,73 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Tree Life</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div id="app">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0d171b" />
+  <title>Tree Life · Observatory</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <button id="brand-home" class="brand" aria-label="Tree Life home"><svg viewBox="0 0 32 38" aria-hidden="true"><path d="M16 35V19M16 23C3 23 3 6 3 6s13 0 13 13M16 18C16 4 29 3 29 3s1 15-13 15"/></svg><span>TREE LIFE</span></button>
+    <nav aria-label="Workspace"><button id="nav-observe" aria-current="page">Observe</button><button id="nav-history">History</button><button id="nav-herbarium">Herbarium</button></nav>
+    <div class="run-meta"><span id="run-id">Opening...</span><span id="archive-status" role="status">Opening history</span></div>
+  </header>
+  <div id="archive-error" class="error-banner" role="alert" hidden><span id="archive-error-message"></span><button id="archive-retry" hidden>Retry saving</button></div>
+  <main id="observe-screen">
+    <section class="observatory" aria-label="World observation">
+      <div class="world-metrics"><span id="plant-count">1 plant</span><span id="seed-count">0 seeds</span><span id="generation-count">Generation 0</span><span id="world-state" role="status"></span></div>
       <div id="world-stage">
-        <canvas id="world" width="800" height="400" aria-label="Simulation world"></canvas>
+        <canvas id="world" width="800" height="500" tabindex="0" aria-label="Simulation world. Drag to explore, scroll to zoom. Use arrow keys to pan when focused."></canvas>
+        <div id="founder-hint"><span class="eyebrow">THE FIRST CELL</span><span>Click the sprout to inspect</span></div>
+        <div id="world-notice" hidden><span class="notice-mark" aria-hidden="true">◇</span><h2 id="world-notice-title"></h2><p id="world-notice-copy"></p><button id="review-run">Review run</button></div>
+        <span id="camera-mode" class="camera-caption">Founder view</span>
       </div>
-      <div id="info-panel" role="region" aria-label="Plant inspector" tabindex="0">
-        <div id="archive-section">
-          <div class="dna-title">History</div>
-          <div id="archive-status" role="status">Opening history...</div>
-          <button id="archive-retry">Retry</button>
-          <label>Run <input id="archive-run" type="number" min="1" placeholder="Current" /></label>
-          <label>Plant ID <input id="archive-plant" type="number" min="1" value="1" /></label>
-          <button id="archive-open">Open record</button>
-          <div id="archive-message" role="status"></div>
-        </div>
-        <div id="info-empty">Click a plant</div>
-        <div id="info-content" style="display: none">
-          <div class="info-row">
-            <span class="label">ID</span><span id="info-id"></span>
-          </div>
-          <div class="info-row">
-            <span class="label">Generation</span
-            ><span id="info-generation"></span>
-          </div>
-          <div class="info-row">
-            <span class="label">Born</span><span id="info-born"></span>
-          </div>
-          <div class="info-row">
-            <span class="label">energy</span><span id="info-energy"></span>
-          </div>
-          <div class="info-row">
-            <span class="label">age</span><span id="info-age"></span>
-          </div>
-          <div class="info-row">
-            <span class="label">cells</span><span id="info-cells"></span>
-          </div>
-          <div class="info-row lineage-row">
-            <span class="label">Parents</span>
-            <span id="info-parents"></span>
-          </div>
-          <div class="info-row lineage-row">
-            <span class="label">Children</span>
-            <span id="info-children"></span>
-          </div>
-          <div class="dna-title">DNA</div>
-          <div id="info-dna"></div>
-        </div>
-        <div id="genome-section">
-          <div class="dna-title">Genomes</div>
-          <button id="btn-save-genome" disabled>Save selected</button>
-          <div id="genome-list"></div>
-        </div>
+      <div class="transport" aria-label="Simulation controls">
+        <span id="playback-status" class="state-indicator" role="status">Paused</span>
+        <div class="transport-group"><button id="play-toggle" class="primary">Start</button><button id="step-once" title="Advance exactly one simulation tick">Step</button></div>
+        <div class="speed-control" role="group" aria-label="Playback speed"><button id="speed-1" aria-pressed="true" title="30 ticks per second">1×</button><button id="speed-4" aria-pressed="false" title="120 ticks per second">4×</button><button id="speed-16" aria-pressed="false" title="Up to 480 ticks per second">16×</button></div>
+        <span class="tick-readout">Tick <strong id="tick-value">0</strong></span>
       </div>
-    </div>
-    <script src="main.js" type="module"></script>
-  </body>
+      <div class="world-tools">
+        <div class="transport-group"><button id="zoom-out" aria-label="Zoom out">−</button><output id="zoom-value" aria-label="Zoom level">100%</output><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-world">Fit world</button></div>
+        <details class="display-options"><summary>Display</summary><div><label>Cell labels<select id="labels-mode"><option value="none">None</option><option value="gene">Gene</option><option value="energy">Energy</option></select></label><label>Shadow rule<select id="shadow-mode"><option value="canopy">Canopy</option><option value="column">Column</option></select></label></div></details>
+        <button id="new-world" class="quiet">New world</button>
+      </div>
+    </section>
+    <aside id="info-panel" aria-label="Plant inspector" tabindex="0">
+      <div id="info-empty">
+        <span class="eyebrow">A LIVING EXPERIMENT</span><h1>A world begins.</h1><p>One founder.<br>An open world.</p><p>Select a plant to explore its life and the instructions behind its growth.</p>
+        <svg class="founder-symbol" viewBox="0 0 240 90" aria-hidden="true"><path d="M20 66H220"/><rect x="106" y="39" width="27" height="27"/><path class="soil-hatch" d="m30 70-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8m30-8-8 8"/></svg>
+        <div class="explore-guide"><span class="eyebrow">START EXPLORING</span><p><b>01</b> Click a plant to inspect</p><p><b>02</b> Scroll or use + / − to zoom</p><p><b>03</b> Drag the world to explore</p><p class="key-hint"><kbd>Space</kbd> play / pause</p></div>
+      </div>
+      <div id="info-content" style="display:none">
+        <div class="specimen-header"><span class="eyebrow" id="specimen-context">CURRENT WORLD</span><div class="specimen-title"><h1>Plant <span id="info-id"></span></h1><span id="plant-status" class="specimen-status"></span></div><button id="btn-save-genome" disabled>Save genome</button>
+          <form id="genome-save-form" hidden><label for="genome-name-input">Genome name</label><input id="genome-name-input" maxlength="100" required /><div class="transport-group"><button type="submit" class="primary">Save</button><button id="cancel-genome-save" type="button">Cancel</button></div></form><p id="genome-save-message" role="status"></p>
+        </div>
+        <div class="inspector-heading">Overview <span id="values-caption">Current values</span></div>
+        <dl class="facts">
+          <div><dt>Generation</dt><dd id="info-generation"></dd></div>
+          <div><dt id="age-label">Age</dt><dd id="info-age"></dd></div>
+          <div><dt id="energy-label">Energy</dt><dd id="info-energy"></dd></div>
+          <div><dt>Born</dt><dd id="info-born"></dd></div>
+          <div><dt>Cells</dt><dd id="info-cells"></dd></div>
+          <div><dt>Children</dt><dd id="children-count"></dd></div>
+        </dl>
+        <div id="death-details" class="death-details" hidden></div>
+        <button id="focus-plant" class="wide">Focus in world</button><p id="focus-hint" class="muted"></p>
+        <details class="inspector-details"><summary>Parents &amp; children</summary><h3>Parents</h3><div id="info-parents"></div><h3>Children</h3><div id="info-children"></div></details>
+        <details class="inspector-details"><summary>DNA · 16 genes</summary><p class="muted">Raw instructions: 0–15 reference a gene. 16–31 do not request growth.</p><div id="info-dna"></div></details>
+      </div>
+      <p id="archive-message" role="status"></p>
+    </aside>
+  </main>
+  <section id="history-screen" class="library-screen" hidden aria-labelledby="history-title"><span class="eyebrow">THE OBSERVATION ARCHIVE</span><h1 id="history-title">Every life leaves a record.</h1><p class="intro">Look up a plant from this world or an earlier run. Opening a record keeps the current world paused.</p><div id="archive-section" class="lookup-card"><h2>Find a plant</h2><div class="lookup-fields"><label>Run<input id="archive-run" type="number" min="1" placeholder="Current" /></label><label>Plant ID<input id="archive-plant" type="number" min="1" value="1" /></label></div><button id="archive-open" class="primary">Open record</button><p id="history-message" role="status"></p></div><p class="muted">Records are stored in this browser. Historical shapes and resumable worlds are not saved.</p></section>
+  <section id="herbarium-screen" class="library-screen" hidden aria-labelledby="herbarium-title"><span class="eyebrow">YOUR GENOME COLLECTION</span><h1 id="herbarium-title">Keep what catches your eye.</h1><p class="intro">Save a selected plant's genome, then plant it in your current world. Playback stays paused until you choose to resume.</p><div id="genome-section"><div id="genome-list"></div></div><p id="library-message" role="status"></p></section>
+  <div id="new-world-confirm" class="confirmation" role="alertdialog" aria-labelledby="new-world-title" aria-describedby="new-world-copy" aria-modal="false" hidden><div><span class="eyebrow">A FRESH START</span><h2 id="new-world-title">Start a new world?</h2><p id="new-world-copy">The current world cannot be resumed. Its saved plant records stay in History.</p><div class="transport-group"><button id="cancel-new-world">Keep this world</button><button id="confirm-new-world" class="primary">Start new world</button></div></div></div>
+  <footer class="app-footer"><span>BOTANICAL OBSERVATORY</span><span>Local worlds. Unexpected lives.</span></footer>
+</div>
+<script src="main.js" type="module"></script>
+</body>
 </html>
