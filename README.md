@@ -31,8 +31,25 @@ interfere with form fields or focused buttons. Arrow keys pan a focused Canvas.
 **History** and **Herbarium** pause the world. Returning to **Observe** keeps it
 paused. Save genomes through the inspector's inline form; Herbarium can plant
 them into the current run without starting playback. Genomes use localStorage
-for the current browser origin. Parent/child links and raw DNA remain in
-expandable inspector sections while richer inspection views are developed.
+for the current browser origin. The inspector has **Overview**, **Lineage**, and
+**DNA** tabs. Left/right arrows, Home, and End switch focused tabs.
+
+### Exploring a family
+
+Lineage shows the selected plant, up to two parents, and six immediate children
+per page, ordered by plant ID. Click a relative to open its Lineage. **Back**
+restores the previous record, children page, and scroll; **Return to origin**
+restores the starting plant. Selecting a plant in the world or opening a History
+record begins a new exploration. Navigation does not move the camera or change
+playback. **Focus in world** remains an explicit action for current living plants.
+
+Children pages and the Overview child count remain stable during playback; the
+count is labelled **Children at refresh**. **Refresh family** includes newly
+recorded children; automatic new-child notifications are planned separately.
+Loaded living records update their status without replacing the controls.
+Historical birth-only records show **Unknown**, never a claim of current life.
+Read failures retain the current card and offer **Retry family**. Missing parents
+remain explicit. DNA currently shows the raw matrix, without command explanations.
 
 The inspector keeps its text size independently of the world. On wider screens
 it occupies a scrollable sidebar; at widths of 760 CSS pixels or less it sits
@@ -93,6 +110,8 @@ For native IndexedDB checks, run `npm start` and open
 http://127.0.0.1:8080/tests/archive-browser.html. The page must report **PASS**
 after its automatic reload. It tests atomic aborts, late children, run isolation,
 missing records, close/reopen, and reload persistence in a disposable test database.
+It also checks bounded family pages with 500 children, two-parent crossover,
+missing parents, page order, and late children without loading all child IDs.
 These browser checks are separate from the Node suite and must also be run when
 changing the IndexedDB adapter.
 
@@ -102,6 +121,11 @@ readable base text, Canvas viewport sizing, no horizontal overflow, and
 accessible long cards through scrolling. Node integration tests also verify
 selection at different Canvas sizes and offsets. Browser checks are run separately
 from CI, which runs the Node suite.
+
+Open http://127.0.0.1:8080/tests/lineage-browser.html for the complete family
+navigation scenario using synthetic in-memory records and the real app. Add
+`?width=390` to check mobile navigation and page-scroll restoration. Both must
+report PASS. These fixtures do not write the user's history or genome collection.
 
 ### GitHub Actions
 
@@ -158,6 +182,8 @@ planting/deletion, and resizing.
 | `src/rendering/config.js` | Display settings |
 | `src/ui/ui.js` | Plant inspector, keyboard, selection, and genome library |
 | `src/ui/playback.js` | Wall-time tick budget, playback speed, and bounded catch-up |
+| `src/ui/lineage-navigation.js` | Async family navigation, bounded Back history, origin, and stale-read cancellation |
+| `src/ui/family-inspector.js` | Inspector tabs, family cards, pages, and scroll restoration |
 | `src/persistence/genomes.js` | Reads/writes genomes through supplied storage |
 | `src/persistence/archive.js` | IndexedDB records, indexed lineage queries and archive acknowledgements |
 
@@ -206,11 +232,17 @@ successful archive transaction. References held by selection and seed parents re
 Age and energy stop changing after death; the children list may still grow.
 
 Model steps, metrics, and normal rendering traverse the active population rather
-than the entire history. Selected lineage views still traverse related records.
+than the entire history. The local family view uses a single readonly IndexedDB
+transaction to read the selected record, at most two parents, and six children.
+The existing parent index supplies counts and a cursor page; the production UI
+does not recursively load descendants or imply complete descendant highlights.
+Earlier API callers can still use the legacy `get` operation with all child IDs.
+
 The browser keeps living records, pending changes, seed parent references, and
-the selected card in memory. Archived bodies/DNA are loaded on demand without
-a growing record cache. Highlight traversal temporarily holds visited IDs and
-can still be expensive for a large lineage. Disk history has no retention limit.
+the displayed family in memory. Back keeps at most 50 lightweight locations plus
+the origin, with no historical genome cache. Deep pages use cursor advancement;
+large-scale performance benchmarking remains future work. Disk history has no
+retention limit.
 
 The archive boundary uses `pendingArchiveChanges()` and
 `acknowledgeArchiveChanges(records)`. Do not advance or reset the model between

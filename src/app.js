@@ -122,6 +122,10 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
         if (!archive) throw new Error("History is unavailable");
         return archive.get(id, runId);
       },
+      async family(id, runId, page) {
+        if (!archive) throw new Error("History is unavailable");
+        return archive.family(id, runId, page);
+      },
     },
     plantGenome(dna) {
       pause(); return persist(() => { simulation.plantSavedGenome(dna); showScreen("observe"); });

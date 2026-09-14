@@ -1,8 +1,11 @@
+import { createFamilyInspector } from "./family-inspector.js";
+
 export function createUI({ document, window, canvas, simulation, viewState, store,
   redraw, toggleRunning, restart, archive, onArchiveOpen = () => {}, plantGenome = dna => simulation.plantSavedGenome(dna) }) {
   let selectionVersion = 0;
   let selectedRun;
   let selectedChildren;
+  let selectedChildCount;
   let selectionTarget;
   let renderedDNA, renderedRelations;
   let saveTarget;
@@ -11,6 +14,16 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     if (el && el.textContent !== String(value)) el.textContent = String(value);
   };
   const archiveMessage = document.getElementById("archive-message");
+  const familyInspector = archive?.family ? createFamilyInspector({ document, window, archive, simulation, redraw,
+    apply(family) {
+      if (viewState.selectedPlant?.id !== family.record.id || selectedRun !== family.runId) closeGenomeForm();
+      selectedRun = family.runId; viewState.selectedRun = selectedRun;
+      viewState.selectedPlant = family.record;
+      selectedChildren = family.children.map(p => p.id); selectedChildCount = family.total;
+      // Local family navigation does not imply a complete descendant highlight.
+      viewState.lineageHighlights = [];
+    },
+  }) : null;
   function closeGenomeForm() {
     saveTarget = undefined;
     const form = document.getElementById("genome-save-form");
@@ -21,6 +34,9 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     selectionVersion++;
     selectedRun = undefined;
     selectedChildren = undefined;
+    selectedChildCount = undefined;
+    familyInspector?.navigation.clear();
+    if (familyInspector) document.getElementById("family-retry").hidden = true;
     selectionTarget = undefined;
     viewState.selectedRun = undefined;
     viewState.selectedPlant = null;
@@ -72,6 +88,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     }
   }
   function refreshArchiveSelection() {
+    if (familyInspector) return; // Keep the inspected page stable until explicit refresh.
     if (archive && (viewState.selectedPlant || selectionTarget)) {
       return selectArchived(viewState.selectedPlant?.id ?? selectionTarget.id,
         selectionTarget?.runId ?? selectedRun ?? archive.runId);
@@ -94,6 +111,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
   }
 
   function drawPlantInfo() {
+    familyInspector?.draw();
     const empty = document.getElementById("info-empty");
     const content = document.getElementById("info-content");
     const btnSave = document.getElementById("btn-save-genome");
@@ -119,7 +137,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     put("values-caption", unknown ? "Birth record · final state unknown" : p.alive ? "Current values" : "Recorded at death");
     put("age-label", p.alive ? "Age" : "Age at death");
     put("energy-label", p.alive ? "Energy" : "Final energy");
-    put("children-count", (selectedChildren ?? p.children).length);
+    put("children-count", selectedChildCount ?? (selectedChildren ?? p.children).length);
     const death = document.getElementById("death-details");
     if (death) { death.hidden = p.alive; put("death-details", `Died at tick ${p.diedAt} · ${p.causeOfDeath === "starvation" ? "Starvation" : "Old age"}`); }
     const focus = document.getElementById("focus-plant");
@@ -138,6 +156,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
       ? p.cells.length
       : "—";
 
+    if (!familyInspector) {
     const relations = `${selectedRun}:${p.id}:${p.parents.join()}:${(selectedChildren ?? p.children).map(id => `${id}/${simulation.state.plantsById.get(id)?.alive}`).join()}`;
     if (relations !== renderedRelations) {
     renderedRelations = relations;
@@ -157,6 +176,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     for (const id of selectedChildren ?? p.children) {
       const child = archive ? { id, alive: selectedRun === archive.runId && simulation.state.plantsById.get(id)?.alive } : simulation.state.plantsById.get(id);
       if (child) childrenEl.appendChild(makeLineageLink(child));
+    }
     }
     }
 
@@ -294,6 +314,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
     viewState.selectedPlant = simulation.plantAt(x, y);
     selectedRun = archive?.runId;
     viewState.selectedRun = selectedRun;
+    if (familyInspector && viewState.selectedPlant) return familyInspector.navigation.start(viewState.selectedPlant.id, selectedRun);
     redraw(); return refreshArchiveSelection();
   }
   function canFocus() {
@@ -342,6 +363,7 @@ export function createUI({ document, window, canvas, simulation, viewState, stor
       return;
     }
     put("history-message", ""); onArchiveOpen();
+    if (familyInspector) { clearArchiveSelection(); return familyInspector.navigation.start(id, run); }
     return selectArchived(id, run);
   });
   try { renderGenomeList(); } catch (error) { put("library-message", `Genome collection unavailable: ${error.message}`); }

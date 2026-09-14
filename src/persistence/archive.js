@@ -54,6 +54,38 @@ export function openArchive(indexedDB = globalThis.indexedDB, name = "tree-life-
             };
           });
         },
+        family(runId, id, page = 0, limit = 6) {
+          if (!Number.isSafeInteger(page) || page < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50 || page * limit > 0xffffffff) {
+            return Promise.reject(new RangeError("Invalid family page"));
+          }
+          return transaction(["plants"], "readonly", (tx, result) => {
+            const plants = tx.objectStore("plants");
+            const request = plants.get([runId, id]);
+            request.onsuccess = () => {
+              const record = request.result;
+              if (!record) { result(null); return; }
+              const family = { record, parents: [], children: [], total: 0, page, limit };
+              result(family);
+              for (const parentId of record.parents.slice(0, 2)) {
+                const parent = plants.get([runId, parentId]);
+                parent.onsuccess = () => family.parents.push(parent.result ?? { id: parentId, missing: true });
+              }
+              const index = plants.index("parents");
+              const key = `${runId}:${id}`;
+              const count = index.count(key);
+              count.onsuccess = () => { family.total = count.result; };
+              const cursor = index.openCursor(key);
+              let skip = page * limit;
+              cursor.onsuccess = () => {
+                const item = cursor.result;
+                if (!item) return;
+                if (skip) { const offset = skip; skip = 0; item.advance(offset); return; }
+                family.children.push(item.value);
+                if (family.children.length < limit) item.continue();
+              };
+            };
+          });
+        },
       });
     };
   });
@@ -79,6 +111,14 @@ export function createArchiveSession(store, simulation) {
       if (live) return { ...live, runId: sourceRun,
         children: archived?.children ?? live.children };
       return archived;
+    },
+    async family(id, sourceRun = runId, page = 0) {
+      const family = await store.family(sourceRun, id, page);
+      if (!family) return null;
+      const current = record => sourceRun === runId
+        ? simulation.state.plantsById.get(record.id) ?? record : record;
+      return { ...family, runId: sourceRun, record: current(family.record),
+        parents: family.parents.map(current), children: family.children.map(current) };
     },
   };
 }

@@ -18,7 +18,11 @@ try {
     const canvas = doc.getElementById("world"); canvas.width = 4800; canvas.height = 1800;
     doc.getElementById("info-empty").hidden = true;
     doc.getElementById("info-content").style.display = "block";
-    for (const details of doc.querySelectorAll(".inspector-details")) details.open = true;
+    doc.getElementById("inspector-overview").hidden = true;
+    doc.getElementById("inspector-lineage").hidden = false;
+    for (const id of ["family-parents", "family-children"]) {
+      doc.getElementById(id).innerHTML = Array.from({ length: id === "family-parents" ? 2 : 6 }, (_, i) => `<button class="family-card"><span class="family-card-title">Plant #${1000000 + i}</span><span class="family-card-status">Unknown</span><span class="family-card-detail">Generation 300 · Born 1200000</span></button>`).join("");
+    }
     doc.getElementById("info-dna").textContent = "DNA record ".repeat(200);
     doc.getElementById("archive-message").textContent = "LongHistoryMessage".repeat(30);
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));

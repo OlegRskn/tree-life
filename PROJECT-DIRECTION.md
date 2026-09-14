@@ -456,3 +456,40 @@ blocking issues were found in the checked flows. The separate existing-bug revie
 remains deferred at the user's request. Next planned iteration: the bounded local
 family view and its navigation states; expanded lineage map and explanatory DNA
 follow afterward.
+
+### Local lineage: iteration 1
+
+2026-09-11: following approval of the two-part lineage plan, implement family
+navigation on `feature/local-lineage`. Add Overview/Lineage/DNA tabs, immediate
+parents and children, Back, and Return to origin. World selection or archive
+lookup begins a new exploration; relative navigation keeps Lineage active.
+Restore the previous record, page, and inspector scroll on Back. Camera and
+playback must remain unchanged. Historical birth-only records show Unknown.
+
+Use the existing parent index to load a bounded page rather than traversing
+descendants. Basic page navigation belongs to this foundation; automatic new-child
+counts and richer live-update behavior remain the second iteration. Provide
+explicit refresh, missing-record/read-error handling, and keyboard navigation.
+No dependencies, archive schema migration, or simulation rule changes.
+
+Acceptance: traverse parent -> child -> grandchild and restore context; handle
+zero/one/two parents, missing records, failed and stale reads, and resets. Load
+only the selected record, at most two parents, and six children per page. Verify
+run isolation, unknown historical status, bounded native IndexedDB reads, and
+desktop/mobile layout. Existing-bug investigation remains deferred.
+
+Implemented: family tabs, bounded indexed pages, explicit refresh, relative
+navigation, a 50-location Back history plus origin, and retry without discarding
+the currently inspected record. Loaded statuses update without replacing focused
+controls. Mobile navigation stays at the inspector; Back/origin restore page scroll.
+No automatic descendant traversal or misleading full-lineage highlight remains
+in the production UI. Legacy lookup remains available for existing API callers.
+
+Validation: 55 Node tests; native IndexedDB checks with a 500-child family; five
+layout sizes; full synthetic-family browser scenarios on desktop and at 390px.
+The mobile jump-to-world issue was reproduced by the browser regression test
+before its fix and passed afterward. Physical touch devices, other browser engines,
+and large-scale performance benchmarks remain unverified. No known blocking issue
+remains in these checked flows. New-child notifications and richer live updates
+remain iteration 2. This branch builds on open PR #5; neither PR is merged by this
+iteration. CI must pass on the final pushed commit before merge.
