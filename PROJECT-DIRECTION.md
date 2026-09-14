@@ -549,3 +549,15 @@ Implemented with a weak DNA-keyed rendering cache. Validation: 65 Node tests pas
 including serialized palette identity, all 64 point-mutation positions, renderer
 seed/body colors, selection outline, and unchanged model state. Browser inspection
 at generation 16 shows distinct green/teal families on the dark background.
+
+### Unobstructed seed waiting
+
+User-requested follow-up: replace the seed-only overlay with a compact status
+beside the population counts. Acceptance: seeds remain visible, playback stays
+available, germination clears the status, and true extinction retains Review run.
+The regression test reproduced the unwanted overlay before the fix. This is a
+separate fix branch built on the genome-color iteration.
+
+Validation: all 65 Node tests pass after the fix. The browser scenario passes on
+desktop and at 390px: seed-only waiting stays unobstructed, germination clears
+the status, and extinction still offers review. Both layouts were visually checked.

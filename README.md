@@ -43,6 +43,10 @@ Selection uses a separate white outline. Similar colors do not prove ancestry:
 different genomes can share a hue. Color is a rendering aid, not a new biological
 trait, and does not change simulation randomness or archive records.
 
+When only seeds remain, a compact status beside the counts indicates waiting for
+germination. The world stays unobstructed and playback remains available. The
+larger review notice appears only when both plants and seeds are gone.
+
 Lineage shows the selected plant, up to two parents, and six immediate children
 per page, ordered by plant ID. Click a relative to open its Lineage. **Back**
 restores the previous record, children page, and scroll; **Return to origin**
@@ -180,6 +184,10 @@ Open http://127.0.0.1:8080/tests/demo-browser.html for demo/random/repeat starts
 live and paused edits, invalid input, keyboard focus, chart markers, and layout.
 Also run with `?width=390` and `?width=320`. Each must report PASS. This scenario
 uses disposable in-memory history and the real application.
+
+Open http://127.0.0.1:8080/tests/waiting-browser.html (also `?width=390`) for
+waiting/germination/extinction UI checks. It must report PASS and leaves a seed
+visible without an overlay, using disposable in-memory history.
 
 ### GitHub Actions
 
