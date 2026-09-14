@@ -1,9 +1,16 @@
 import { leafMultiplier } from "../simulation/simulation.js";
+import { genomePalette } from "./genome-colors.js";
 
 export function createRenderer(canvas, simulation, viewState) {
   const ctx = canvas.getContext("2d");
   const state = simulation.state;
   const config = state.config;
+  // DNA is immutable; weak keys release colors when plants/seeds leave memory.
+  const palettes = new WeakMap();
+  function palette(dna) {
+    if (!palettes.has(dna)) palettes.set(dna, genomePalette(dna));
+    return palettes.get(dna);
+  }
   canvas.width = config.WIDTH * viewState.cellSize;
   canvas.height = config.HEIGHT * viewState.cellSize;
 
@@ -179,27 +186,12 @@ export function createRenderer(canvas, simulation, viewState) {
   }
 
   function cellColor(plant, cell) {
-    if (viewState.camera) {
-      return { sprout: "#e8dfc7", ready: "#d6ad63", wood: "#786248",
-        leaf: `hsl(${85 + plant.hue % 45}, 25%, ${43 + plant.hue % 12}%)` }[cell.type] ?? "#a9b4b0";
-    }
-    switch (cell.type) {
-      case "sprout":
-        return "white";
-      case "ready":
-        return "gold";
-      case "leaf":
-        return `hsl(${plant.hue}, 70%, 40%)`;
-      case "wood":
-        return `hsl(${plant.hue}, 30%, 25%)`;
-      default:
-        return "gray";
-    }
+    return palette(plant.dna)[cell.type] ?? "#a9b4b0";
   }
 
   function drawSeeds() {
-    ctx.fillStyle = viewState.camera ? "#d6ad63" : "yellow";
     for (const seed of state.seeds) {
+      ctx.fillStyle = palette(seed.dna).seed;
       ctx.fillRect(
         seed.x * viewState.cellSize,
         seed.y * viewState.cellSize,

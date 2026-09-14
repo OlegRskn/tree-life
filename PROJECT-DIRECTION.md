@@ -534,3 +534,18 @@ the Display shadow-mode switch is outside the Conditions intervention log.
 Repeat restores the baseline rather than replaying interventions or plantings.
 Physical touch devices and other browser engines remain unverified. No deployment
 or merge is part of this iteration; final pushed CI must pass before merge.
+
+### Genome-derived colors
+
+Approved iteration: derive plant and seed colors from existing DNA in the renderer.
+Acceptance: identical DNA retains its palette across serialization/replanting;
+single-position mutations cause small hue shifts; stems remain darker than leaves,
+seeds use their own genome, and selection keeps its independent white outline.
+Simulation rules, random draws, and archive records must remain unchanged.
+Use a stable weighted projection rather than an avalanche hash. Color similarity
+is only a visual hint, never evidence of shared ancestry or a unique species ID.
+
+Implemented with a weak DNA-keyed rendering cache. Validation: 65 Node tests pass,
+including serialized palette identity, all 64 point-mutation positions, renderer
+seed/body colors, selection outline, and unchanged model state. Browser inspection
+at generation 16 shows distinct green/teal families on the dark background.
