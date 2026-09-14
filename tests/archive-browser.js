@@ -14,14 +14,20 @@ try {
     check(parent.diedAt === 10, "Death must survive page reload");
     check(parent.children.join() === "2,3", "Late offspring must survive page reload");
     check(parent.dna[0][0] === 1, "DNA must survive page reload");
+    const metadata = await store.getRun(run);
+    check(metadata.start.seed === 16, "Starting seed must survive page reload");
+    check(metadata.interventions.length === 1 && metadata.interventions[0].after.LIGHT_MULTIPLIER === 0.6, "Interventions must survive reload without retry duplicates");
     store.close();
     indexedDB.deleteDatabase(name);
-    result.textContent = "PASS: native IndexedDB writes, bounded family pages, crossover, late children, run isolation, atomic abort, missing records, close/reopen, and page reload.";
+    result.textContent = "PASS: native IndexedDB writes, start metadata, intervention retry/reload, bounded family pages, crossover, late children, run isolation, atomic abort, missing records, close/reopen, and page reload.";
   } else {
     const name = `tree-life-test-${crypto.randomUUID()}`;
     store = await openArchive(indexedDB, name);
-    const run = await store.createRun();
+    const run = await store.createRun({ start: { seed: 16, conditions: { LIGHT_MULTIPLIER: 1 } } });
     const otherRun = await store.createRun();
+    const event = { id: 1, tick: 100, before: { LIGHT_MULTIPLIER: 1 }, after: { LIGHT_MULTIPLIER: 0.6 } };
+    await store.recordInterventions(run, [event]); await store.recordInterventions(run, [event]);
+    check(!(await store.getRun(otherRun)).interventions, "Interventions must remain in their run");
     const parent = { id: 1, parents: [], children: [], dna: [[1]], alive: false, diedAt: 10 };
     await store.write(run, [parent]);
     await store.write(run, [{ ...parent, id: 2, parents: [1] }, { ...parent, id: 3, parents: [1] }]);

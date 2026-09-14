@@ -6,10 +6,18 @@ import { createUI } from "./ui/ui.js";
 import { createPlayback } from "./ui/playback.js";
 import { createGenomeStore } from "./persistence/genomes.js";
 import { openArchive, createArchiveSession } from "./persistence/archive.js";
+import { makeStart, validateConditions } from "./simulation/conditions.js";
+import { createExperimentHistory } from "./ui/experiment-history.js";
+import { createConditionsPanel } from "./ui/conditions-panel.js";
 
 export async function createApp({ openStore = openArchive, simulationOptions } = {}) {
-  const simulation = createSimulation(simulationOptions);
+  const simulation = createSimulation({ seed: 16, ...simulationOptions });
+  let start = { ...makeStart(), kind: simulationOptions ? "custom" : "demo", seed: simulationOptions?.seed ?? 16, conditions: simulation.getConditions() };
   const playback = createPlayback();
+  if (!simulationOptions) playback.setSpeed(4);
+  const history = createExperimentHistory(); history.reset(simulation.state);
+  const pendingInterventions = [];
+  let interventionId = 0, changingConditions = false, restarting = false;
   const camera = createCamera(simulation.state.config);
   const viewState = { ...defaultViewConfig, selectedPlant: null, labelMode: "none", lineageHighlights: [], camera };
   const el = id => document.getElementById(id);
@@ -26,12 +34,16 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
     const mode = failed ? "Storage paused" : !ready ? "Opening history" : empty ? "Ended" : playback.running ? "Live" : "Paused";
     text("playback-status", mode);
     el("playback-status").dataset.state = failed ? "error" : playback.running ? "live" : "paused";
-    text("play-toggle", playback.running ? "Pause" : state.tickCount ? "Resume" : "Start");
+    text("play-toggle", playback.running ? "Pause" : state.tickCount ? "Resume" : start.kind === "demo" ? "Start demo" : "Start");
     el("play-toggle").disabled = !ready || failed || empty || screen !== "observe";
     el("step-once").disabled = !ready || failed || empty || playback.running || busy || screen !== "observe";
     el("new-world").disabled = !ready || busy || failed;
     text("tick-value", state.tickCount.toLocaleString("en-US"));
     text("run-id", archive?.runId ? `Run ${String(archive.runId).padStart(2, "0")}` : "Opening...");
+    text("start-label", `${start.kind === "demo" ? "Demo" : start.kind === "random" ? "Random" : "Seeded"} · Seed ${start.seed}`);
+    text("welcome-title", state.tickCount ? "Every plant has a story." : start.kind === "demo" ? "Watch a lineage take root." : "A world begins.");
+    text("welcome-copy", start.kind === "demo" ? "A reproducible living world. Start at 4×, watch the founder grow, then follow its children." : "A new starting genome. Some worlds flourish; others end before the first offspring.");
+    conditionsPanel.draw(!ready || failed || changingConditions || restarting);
     text("plant-count", `${state.plants.length} ${state.plants.length === 1 ? "plant" : "plants"}`);
     text("seed-count", `${state.seeds.length} ${state.seeds.length === 1 ? "seed" : "seeds"}`);
     let gen = 0; for (const plant of state.plants) gen = Math.max(gen, plant.generation);
@@ -58,14 +70,22 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
     operations = operations.then(() => performPersist(action));
     return operations;
   }
+  async function flushInterventions() {
+    if (!pendingInterventions.length) return;
+    const batch = pendingInterventions.slice();
+    await archive.recordInterventions(batch); pendingInterventions.splice(0, batch.length);
+  }
+  function advance() { simulation.step(); history.record(simulation.state, ended()); }
   async function performPersist(action = () => {}) {
     busy = true; updateControls();
     try {
       if (!archive) archive = createArchiveSession(await openStore(), simulation);
-      if (archive.runId === undefined) await archive.start();
+      if (archive.runId === undefined) await archive.start({ start });
       let changed = await archive.flush();
+      await flushInterventions();
       await action();
       changed = await archive.flush() || changed;
+      await flushInterventions();
       ready = true; failed = false;
       text("archive-status", "History saved locally");
       if (changed) ui.refreshArchiveSelection();
@@ -83,7 +103,7 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
     const due = playback.due(time);
     for (let i = 0; i < due; i++) {
       if (token !== epoch || !playback.running || failed || ended()) break;
-      await persist(() => { if (token === epoch && playback.running) simulation.step(); });
+      await persist(() => { if (token === epoch && playback.running) advance(); });
     }
     draw(); scheduleTick();
   }
@@ -93,7 +113,7 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
   }
   function stepOnce() {
     if (!ready || failed || ended() || playback.running || busy || screen !== "observe") return;
-    return persist(() => simulation.step());
+    return persist(advance);
   }
   function showScreen(name) {
     pause(); screen = name;
@@ -104,15 +124,46 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
     draw();
   }
   async function restart() {
+    if (restarting || !ready || failed) return;
+    const next = makeStart(el("new-world-mode").value || "repeat", start);
+    restarting = true;
     pause(); el("new-world-confirm").hidden = true;
-    await persist(async () => {
-      await archive.start(); simulation.reset(); ui.clearArchiveSelection();
-      camera.founder(); playback.pause();
-    });
+    try {
+      await persist(async () => {
+        await archive.start({ start: next }); simulation.reset(next); start = next;
+        ui.clearArchiveSelection(); history.reset(simulation.state); interventionId = 0;
+        camera.founder(); playback.pause(); playback.setSpeed(start.kind === "demo" ? 4 : 1);
+        el("shadow-mode").value = simulation.state.shadowMode;
+        conditionsPanel.sync(simulation.getConditions()); conditionsPanel.message("");
+      });
+    } finally { restarting = false; draw(); }
   }
   function requestRestart() {
     if (!ready || failed) return;
     pause(); el("new-world-confirm").hidden = false; el("cancel-new-world").focus();
+  }
+  async function changeConditions(patch) {
+    if (!ready || failed || changingConditions || restarting) return;
+    let next;
+    try { next = validateConditions(simulation.state.config, patch); }
+    catch (error) { conditionsPanel.message(error.message); conditionsPanel.sync(simulation.getConditions()); return; }
+    changingConditions = true;
+    try {
+      await persist(() => {
+        const previous = simulation.getConditions();
+        const keys = Object.keys(next).filter(key => next[key] !== previous[key]);
+        if (!keys.length) { conditionsPanel.sync(previous); conditionsPanel.message("Already at these settings."); return; }
+        simulation.setConditions(next);
+        const event = { id: ++interventionId, tick: simulation.state.tickCount,
+          before: Object.fromEntries(keys.map(key => [key, previous[key]])), after: Object.fromEntries(keys.map(key => [key, next[key]])) };
+        pendingInterventions.push(event); history.record(simulation.state, true); history.add(event);
+        conditionsPanel.sync(next); conditionsPanel.message(`Applied at tick ${event.tick}. Playback stays ${playback.running ? "running" : "paused"}.`);
+      });
+    } finally { changingConditions = false; draw(); }
+  }
+  function showInspector(conditions) {
+    el("plant-panel").hidden = conditions; el("conditions-panel").hidden = !conditions;
+    el("show-plant").setAttribute("aria-pressed", String(!conditions)); el("show-conditions").setAttribute("aria-pressed", String(conditions));
   }
   const ui = createUI({ document, window, canvas, simulation, viewState,
     store: createGenomeStore(localStorage), redraw: draw,
@@ -131,9 +182,14 @@ export async function createApp({ openStore = openArchive, simulationOptions } =
       pause(); return persist(() => { simulation.plantSavedGenome(dna); showScreen("observe"); });
     },
     toggleRunning, restart: requestRestart,
-    onArchiveOpen() { showScreen("observe"); },
+    onArchiveOpen() { showScreen("observe"); showInspector(false); },
   });
-  bindCamera(canvas, camera, draw, point => ui.selectAt(Math.floor(point.x), Math.floor(point.y)));
+  const conditionsPanel = createConditionsPanel({ document, history, change: changeConditions,
+    restore(key) { return changeConditions(key ? { [key]: start.conditions[key] } : start.conditions); } });
+  conditionsPanel.sync(simulation.getConditions());
+  el("show-plant").addEventListener("click", () => showInspector(false));
+  el("show-conditions").addEventListener("click", () => showInspector(true));
+  bindCamera(canvas, camera, draw, point => { showInspector(false); return ui.selectAt(Math.floor(point.x), Math.floor(point.y)); });
   for (const name of ["observe", "history", "herbarium"]) el(`nav-${name}`).addEventListener("click", () => showScreen(name));
   el("brand-home").addEventListener("click", () => showScreen("observe"));
   el("play-toggle").addEventListener("click", toggleRunning);

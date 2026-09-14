@@ -1,10 +1,18 @@
 export function memoryArchive() {
   const records = new Map();
+  const runs = new Map();
   let lastRun = 0;
   return {
     records,
+    runs,
     fail: false,
-    async createRun() { return ++lastRun; },
+    async createRun(metadata = {}) { runs.set(++lastRun, structuredClone(metadata)); return lastRun; },
+    async recordInterventions(run, events) {
+      if (this.fail) throw new Error("Disk full");
+      const record = runs.get(run); const existing = record.interventions ?? [];
+      record.interventions = [...existing, ...structuredClone(events).filter(event => !existing.some(old => old.id === event.id))];
+    },
+    async getRun(run) { return structuredClone(runs.get(run) ?? null); },
     async write(run, plants) {
       if (this.fail) throw new Error("Disk full");
       for (const p of plants) records.set(`${run}:${p.id}`, structuredClone({ ...p, runId: run, cells: [], children: [] }));
