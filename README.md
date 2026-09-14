@@ -36,6 +36,13 @@ for the current browser origin. The inspector has **Overview**, **Lineage**, and
 
 ### Exploring a family
 
+Plants and seeds derive their colors from their own DNA. Identical genomes keep
+the same palette after saving/replanting; small mutations shift the hue gradually.
+Leaves carry the main color, stems are darker, and sprouts/seeds are lighter.
+Selection uses a separate white outline. Similar colors do not prove ancestry:
+different genomes can share a hue. Color is a rendering aid, not a new biological
+trait, and does not change simulation randomness or archive records.
+
 Lineage shows the selected plant, up to two parents, and six immediate children
 per page, ordered by plant ID. Click a relative to open its Lineage. **Back**
 restores the previous record, children page, and scroll; **Return to origin**
@@ -226,6 +233,7 @@ planting/deletion, and resizing.
 | `src/simulation/config.js` | Default world rules |
 | `src/simulation/conditions.js` | Editable condition descriptors, atomic validation, and seeded starts |
 | `src/rendering/renderer.js` | Reads the model and draws on Canvas |
+| `src/rendering/genome-colors.js` | Stable DNA-derived palettes with gradual mutation shifts |
 | `src/rendering/camera.js` | World/screen coordinates, zoom, pan, fit/focus, and pointer gestures |
 | `src/rendering/config.js` | Display settings |
 | `src/ui/ui.js` | Plant inspector, keyboard, selection, and genome library |
